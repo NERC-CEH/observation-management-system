@@ -1,0 +1,1 @@
+The Ameriflux paper by Boden would be a good starting point, followed by Flink and Kafka introduction.
