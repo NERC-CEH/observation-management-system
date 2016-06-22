@@ -141,6 +141,9 @@ Meta-data to store in separate tables from the observations, to join when necess
 
 ## Table Design
 
+* While the column phenomenonendtime is stored for observation data, it is not stored for QC data.  This is due to it being unnecessary for merging data as an unique set of procedure/feature/observableproperty values will generate an observation series with no overlapping temporal points.
+
+
 ### Observation Table
 
 Fields within the table are:
@@ -201,28 +204,4 @@ The column key is:
 
 ### Observation Nil/Censored Tables
 
-The observation nil/censored tables hold the textual reason as to why an observation has either nil (NA) value, or why an observation has been censored.  A typical reason for the former would be a maintenance period of the sensor, while for the latter a hourly or daily aggregate where greater than 50% of the observations were deemed of low quality would lead to a censored (NA) value.
-
-* procedure: a URI to the catalogue
-* feature: a URI to the catalogue
-* observableproperty: a URI to the vocabulary
-* year: the year the observations relate to 
-* month: the month within the year the observations relate to
-* phenomenontimestart: the start of the phenomenon time (or the time point when using TVP representation)
-* nilreason: a text entry for free description of why a particular value is nil/NA
-
-* procedure: a URI to the catalogue
-* feature: a URI to the catalogue
-* observableproperty: a URI to the vocabulary
-* year: the year the observations relate to 
-* month: the month within the year the observations relate to
-* phenomenontimestart: the start of the phenomenon time (or the time point when using TVP representation)
-* censoredreason: a text entry for free description of why a particular value has been censored
-
-The row key for both is:
-
-* procedure, feature, observableproperty, year, month
-
-The column key for both is:
-
-* phenomnontimestart
+Originally it was thought to remove the observation nil, censored reasons out of the observation table.  This view changed however to one where this scenario can be represented using the correct overall flag and observation value comment.  If a value is nil or censored, the overall flag will represent this, and the reason for this flag will be stored within the comment column.
