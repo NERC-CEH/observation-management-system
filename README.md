@@ -16,7 +16,7 @@ More information on the different areas of this project can be found in their re
 
 * [Data representation](documentation/observation-sensor-representation/OGCStandardsBasedDesign.md)
 * [Data workflow](documentation/workflow-dataproducts/DataWorkflowProducts.md)
-* [QC checks](documents/qc-checks/QualityControlRoutines.md)
+* [QC checks](documentation/qc-checks/QualityControlRoutines.md)
 
 ## Technologies
 
