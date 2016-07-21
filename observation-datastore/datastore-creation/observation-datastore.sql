@@ -14,9 +14,10 @@ WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 2 }
 AND DURABLE_WRITES = true;
 
 
--- Create the observation table
+-- Create the observation table for holding numeric observations
 -- ---------------------------------------------------------
-CREATE TABLE IF NOT EXISTS observation.observations(
+
+CREATE TABLE IF NOT EXISTS observation.observations_numeric(
 procedure text,
 feature text,
 observableproperty text,
@@ -31,6 +32,8 @@ status text,
 processing text,
 uncertml text,
 comment text,
+location text,
+parameters text,
 PRIMARY KEY ((procedure, feature, observableproperty, year, month), phenomenontimestart)
 )
 WITH CLUSTERING ORDER BY (phenomenontimestart)
@@ -56,8 +59,6 @@ AND comment = 'The main table for storing observation data, holding the observed
 -- Create the forecast observation table
 -- ---------------------------------------------------------
 
--- CHECK: Does the composite column key make sense?  Is it possible to
---        search for the phenomenon time point of interest, with result and valid > x?
 CREATE TABLE IF NOT EXISTS observation.forecast_observations(
 procedure text,
 feature text,
@@ -77,7 +78,7 @@ status text,
 processing text,
 uncertml text,
 comment text,
-PRIMARY KEY ((procedure, feature, observableproperty, year, month), phenomenontimestart, resulttimestart, validtimeend)
+PRIMARY KEY ((procedure, feature, observableproperty, year, month), phenomenontimestart)
 )
 WITH CLUSTERING ORDER BY (phenomenontimestart)
 -- Compaction and bloom filter settings go together.  LeveledCompaction was chosen
@@ -109,7 +110,8 @@ year int,
 month int,
 phenomenontimestart timestamp,
 qualifier text,
-value text,
+qualifierqualitativevalue text,
+qualifierquantitativevalue decimal,
 comment text,
 PRIMARY KEY ((procedure, feature, observableproperty, year, month), phenomenontimestart, qualifier)
 )

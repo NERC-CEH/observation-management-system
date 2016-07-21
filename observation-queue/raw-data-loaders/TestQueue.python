@@ -1,0 +1,41 @@
+#!/usr/bin/python2.4
+#
+
+from datetime import datetime, timedelta
+import random
+import string
+import csv
+import os
+os.chdir('/mnt')
+
+feature_template = "http://vocabs.lter-europe.net/EnvThes/feature_"
+procedure_template = "http://vocabs.lter-europe.net/EnvThes/procedure_"
+phenomenon_template = "http://vocabs.lter-europe.net/EnvThes/phenomenon_"
+unit = "Cel"
+value = 27
+year = 2015
+jsonrep = "{type : http://www.opengis.net/def/observationType/OGC-OM/2.0/OM_Measurement,procedure : http://oa-sos.cloudapp.net:8080/52n-sos-dev/procedure/cosmos/stght/tdt1,offering : http://oa-sos.cloudapp.net:8080/52n-sos-dev/offering/cosmos/stght/tdt1,observableProperty : http://oa-sos.cloudapp.net:8080/52n-sos-dev/observableProperty/soilMoistureContent,featureOfInterest : {identifier : {codespace : http://www.opengis.net/def/nil/OGC/0/unknown,value : http://oa-sos.cloudapp.net:8080/52n-sos-dev/featureOfInterest/stght},name : {codespace : http://www.opengis.net/def/nil/OGC/0/unknown,value : Stoughton},geometry : {type : Point,coordinates : [52.601638,-1.0470071]}},phenomenonTime : 2015-08-19T06:30:00.000Z,resultTime : 2015-08-19T06:30:00.000Z,result : {uom : vol/vol,value : 15.1}}"
+
+f = range(60,110,1)
+pr = range(1,25,1)
+ph = range(1,50,1)
+timepositions = range(1,131400,1)
+
+startTime = datetime.strptime('2015-01-01 00:00:00','%Y-%m-%d %H:%M:%S')
+endTime = datetime.strptime('2015-01-01 00:04:00','%Y-%m-%d %H:%M:%S')
+
+csvfile = open('cassandra_load_two.csv', 'wb')
+testwriter = csv.writer(csvfile, delimiter=',',quotechar='"',quoting=csv.QUOTE_NONNUMERIC)
+
+for i in f:
+    for j in pr:
+        for k in timepositions:
+            #phid = random.randrange(1,1)
+            phid = 1
+            newStartTime = startTime + timedelta(minutes=4*k)
+            newEndTime = endTime + timedelta(minutes=4*k)
+
+            feat = feature_template+str(i)
+            proc = procedure_template+str(j)
+            phen = phenomenon_template+str(phid)
+            testwriter.writerow([str(proc),feat,phen,year,newStartTime,newEndTime,unit,value,jsonrep])

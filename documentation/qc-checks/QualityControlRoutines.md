@@ -54,7 +54,18 @@ As well as an overall flag value, each observation will have multiple individual
 
 The determination of the overall flag value is interesting problem, as there have recently been machine learning and fuzzy logic examples of this ultimate decision, and it is one that would hopefully use such techniques, rather than inflexible static rules.  An example of not using static rules would be if a set of observations are recorded when the battery voltage is lower than can be guaranteed to generate correct observations, but the signal behaves as expected based on observations before and after the low battery period, based on forecasts and expected behaviour, and show no other issues, then these could be marked as 'good' rather than say 'suspect'.
 
+## Database Representation
+
+Within the database, the [representation](../observation-sensor-representation/OGCStandardsBasedDesign.md) of individual QC checks includes columns for both a quantitative and qualitative value, and a comment on the particular check.  By storing a comment for every test, it becomes possible to qualify tests that are dependent on data who's arrival can be delayed by weeks, as well as providing a space for comments left by the techniques used, or to be overwritten by a human operator.
+
+Regarding checks that depend on late arriving data, such as whether a sensor was undergoing maintenance or was not cleaned for a period, to create a complete QC record, these checks could have the qualitative value of 'pass', and a comment such as 'Default: No Information'.  This could also be used for the battery voltage check, as there can be a lag between observations being generated and the hourly battery summary.
+
+The qualitative and quantitative columns allow for a richer recording of QC check outcomes.  For example, the qualitative value allows recording the individual 'pass' or 'fail' status of each check, allowing for finer grained later analysis.  The quantitative column allows for a distance metric to be recorded for checks where there are boundary, optimal, or acceptable regions of value.  For instance, if a check has a boundary threshold which an observations exceeds, the distance between the threshold and the observation can be recorded.  For observations that pass, the distance within the threshold is also recorded, as this data makes for an interesting feature, and provides the potential for later QC checks to use these features for more informed analysis.
+
+
 ## Standard QC Checks
+
+A brief list of the standard QC checks found in a variety of the literature is found below.
 
 QC Type | Description | Found In
 ------- | ----------- | ---------
@@ -114,9 +125,9 @@ Provides a number of checks aggregated from preceding literature, focusing on ra
 
 ### Automated quality control methods for sensor data: a novel observatory approach (Taylor and Loescher 2013)
 
-Providing range, sigma, delta, step, null, and gap tests, they discuss a data-driven method to infer realistic bounds from historical data.  At first sampling of data characteristics is discussed, such as sampling the minimum values for a given sensor over a window of N observations, before being replaced by an exponentially weighted moving average.  Currently being tested.
+Providing range, sigma, delta, step, null, and gap tests, they discuss a data-driven method to infer realistic bounds from historical data.  At first sampling of data characteristics is discussed, such as sampling the minimum values for a given sensor over a window of N observations, before being replaced by an exponentially weighted moving average.
 
-This is an extension of the work in Hasu & Aaltonen (2011).
+This appears to be an extension of the work in Hasu & Aaltonen (2011).
 
 
 ## Overall Flag Allocation

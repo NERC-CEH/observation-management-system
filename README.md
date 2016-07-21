@@ -14,7 +14,7 @@ This system, while designed with the O&M standard in mind, will not produce the 
 
 More information on the different areas of this project can be found in their respective documentation, listed here:
 
-* [Data representation](documentation/observation-sensor-representation/OGCStandardsBaseDesign.md)
+* [Data representation](documentation/observation-sensor-representation/OGCStandardsBasedDesign.md)
 * [Data workflow](documentation/workflow-dataproducts/DataWorkflowProducts.md)
 * [QC checks](documents/qc-checks/QualityControlRoutines.md)
 
@@ -52,7 +52,7 @@ Short-lived data refers to derived data which has a short time-frame of interest
 
 TBC.
 
-### Semantic Annotation, Data Persist
+### Semantic Annotation, Data Persistence
 
 TBC.
 
