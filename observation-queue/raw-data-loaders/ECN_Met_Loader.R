@@ -76,6 +76,9 @@ for(curr_file in to_process){
   
   file.copy(curr_file, str_c('./processed/',curr_file))
   file.remove(curr_file)
+
+  # Close the Kafka connection
+  rkafka.closeProducer(ecn_producer)
 }
 
 
