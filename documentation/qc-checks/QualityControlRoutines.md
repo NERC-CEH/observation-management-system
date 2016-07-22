@@ -132,7 +132,9 @@ This appears to be an extension of the work in Hasu & Aaltonen (2011).
 
 ## Overall Flag Allocation
 
-Currently there has been a lot of research into applying machine learning (ML) techniques such as clustering, classification, and fuzzy logic to the task of overall observation QC flag assignment.  The general approach has been to use the output from QC checks, whether binary, categorical, or distance based, as the features in ML techniques (Rahman et al. 2014).  With the WaterML2 specification providing both a qualitative and quantitative overall quality flag, it seems an approach that will be embraced in the future.
+Currently there has been a lot of research into applying machine learning (ML) techniques such as clustering, classification, and fuzzy logic to the task of overall observation QC flag assignment.  The general approach has been to use the output from QC checks, whether binary, categorical, or distance based, as the features in ML techniques (Rahman et al. 2014).  An example of how such techniques can be applied is by using the TEDA based eccentricity value of a data-point, and the distance between an observation and a number of different forecast values from techniques such as dynamic harmonic regression or simple historical weighted windowed averages as the features within an online clustering or classification technique.  The choice of which technique to use depends on the datastream and how much it is expected to change over time compared to historical data, and what type of inference can be made on clustered groups.
+
+The WaterML2 (TimeSeriesML) specification provides both a qualitative and quantitative overall quality flag for observations, which fits well with the above approach.
 
 
 # References

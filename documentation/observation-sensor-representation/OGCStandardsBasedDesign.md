@@ -127,11 +127,11 @@ Meta-data to include within the database potentially for every recorded observat
 * quality
     + an overall qualitative flag representing the quality of the observation
 * accuracy
-    + a quantitative measure representing the quality of the observation
+    + a quantitative measure representing the quality of the observation, currently normalised to a value [0,1], with -1 indicating no value being set
 * status
     + the current status of the observation, such as provisional, processed, validated, published
 * processing 
-    + allowing categorisation of the processing that has been applied, separately from the process information.  For example, the process may be the physical sensor, but, this may refer to differing levels of QC processing (used in conjunction with status).  It could also indicate the QC Unit used to process the observation, or the manual sampling regime handbook followed by the human used as the process
+    + allowing categorisation of the processing that has been applied, separately from the process information.  For example, the process may be the physical sensor, but, this may refer to differing levels of QC processing (used in conjunction with status).  It could also indicate the QC Unit used to process the observation, or the manual sampling regime handbook followed by the human used as the process.  Currently it documents the last stream processing module that modified the record
 
 Meta-data to store in separate tables from the observations, to join when necessary:
 

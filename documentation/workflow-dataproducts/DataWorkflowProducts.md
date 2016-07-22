@@ -33,8 +33,13 @@ For the routing of data through the system, including the QC checks applied, rea
 * Current state parameters for models
     + with the use of recursive techniques for QC, model state is necessary to be recorded between observations.  This may be handled by the registry, or it may be handled by the framework
 * Model parameters
-    + observations to be used as parameters in another observation's QC, forecast, or model output, need to be routed correctly and documented that they are the necessary input parameters
+    + observations to be used as parameters in another observation's QC, forecast, or model output, need to be routed correctly and documented that they are the necessary input parameters.
     
+The creation of much of the above registry will be automatically generated through inference over the catalogue or linked triple store.  The reason for this is to allow for simple inference rules to provide dynamic application of QC check techniques, and validation data from new sources as it becomes available.  For example, a query to identify all the atmospheric temperature sensors can combine with a query that identifies the checks associated with atmospheric temperature.  If one of those checks specifies that it should be applied only if solar radiation is being sensed within a one kilometre radius, the search should identify if there is such a sensor, and if so, create an entry in the registry for that check to be applied to the atmospheric data stream with the relevant solar radiation stream as an attribute to the check.
+
+The example above highlights the reason why it is necessary to use the phenomena rather than individual sensors for rules where possible.  It provides flexibility, and the automated use of new data sources as they are added to the system.  While it is an attempt at a generic solution, it is known that in many instances such automated rules of QC and comparison will be too generic, or lacking in knowledge about outlier stations or unique within our collected observation points, and this will have to be addressed once the preliminary case-study has commenced.
+
+
 ### Registry Design
 
 TBD.
@@ -59,6 +64,6 @@ model input parameters served/sent as JSON objects, all encoded together rather 
 ## Open Questions
 
 * How to automate data-flow and QC checks based on phenomena rather than individual sensors.
-* + this stands for both allowing new data sources to be added and have their data-flow automatically arranged, but also to know to use the data for other observations QC checks.  For instance if a source of air temperature were to be added at a site that already had air temperature recorded, the system would automatically compare the correlation and apply similar tests to the new from the existing procedure.  Such an example leads to the task of automatically determining thresholds.
+    + this stands for both allowing new data sources to be added and have their data-flow automatically arranged, but also to know to use the data for other observations QC checks.  For instance if a source of air temperature were to be added at a site that already had air temperature recorded, the system would automatically compare the correlation and apply similar tests to the new from the existing procedure.  Such an example leads to the task of automatically determining thresholds.
 * Related to the above, the combination of high and low frequency data in such a scenario to allow automated use of arbitrarily added data sources.
-*  + for instance, comparing the high-frequency sensor data to manually sampled observations
+    + for instance, comparing the high-frequency sensor data to manually sampled observations
