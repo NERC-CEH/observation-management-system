@@ -2,23 +2,38 @@
 
 ## Data ingestion
 
-For the sensor networks involved in this project, the data arrives on-site from a range of different data loggers.  The data files produced by the different loggers are in relatively similar, but not the same, format.  To bridge these data files to the processing system a set of scripts micro-batch the data onto the initial queue.  From this point the data is represented in the same way throughout the system until being made persistent in the database.
+For the sensor networks involved in this project, the data arrives on-site from a range of different data loggers.  The data files produced by the different loggers are in relatively similar, but not the same, format.  To bridge these data files to the processing system a set of scripts micro-batch the data onto the initial queue.  From this point the data is represented with semantic information throughout the system until being made persistent in the database.
 
 ![Basic Workflow Overlay](graphics/HighLevelWorkflow.png?raw=true "High Level Dataflow")
 
-As shown in the above diagram, before persistence to the database, all data goes through the 'Semantic Annotate' node.  So as not to send data unnecessarily through the system, only the most basic information to identify each tuple is used in the processing stages.  However when it comes to persisting the tuple in the database, more than the basic information is necessary and this is provided by the annotation node.
+The diagram above describes the general flow for all numerical observations, where data is placed onto the data queue, semantically annotated, processed and persisted.  The generic processing node can stand for the QC, forecasting, or any data processing.  The link back to the data queue is for derived data that is treated like a raw observation that needs to QC applied and potentially more processing.  Events are persisted along with observation data as they need to be managed and potentially mined.
+
+With the ingestion of the data, there is a need for the loaders to keep a record of the last time stamp added, so as not to load an observation more than once.  While this wouldn't cause an issue with the end result, it would mean unnecessary extra processing.
+
+### Automatically Downloaded Sensor Data
+
+Sensor data that streams in from the in-situ loggers are held on-site in XML and CSV formatted files, updated throughout the day.  A script running as a service periodically searches for and processes new data automatically, providing a near-continuous stream of observations.
 
 ### Manually Downloaded Sensor Data
 
-TBD.
+Sensor data that is manually downloaded from in-situ loggers is periodically added into a data folder with a relatively predictable cycle.  Similar to the automatically downloaded sensor data this can searched by a script service searching for and processing new data as it appears.
 
-### Manually Sampled Data
+### Manually Sampled and Specimen Analysis Data
 
-TBD.
+Currently manually sampled data and specimen analysis data, such as fish biological information, the chemical make-up of water samples, or plankton counts, are sporadic in processing time, and there is no single format for all data.
 
-### Specimen Analysis Data
+Unlike the sensor data, which arrives in a readable format, the sampled and specimen data can be represented as CSV, XML, or spreadsheet, and potentially other software specific formats too.  There is a need to either create an adapter for each data source, or require data producers to format the data into a standardised format.
 
-TBD.
+## Numerical Observation Workflow
+
+The basic observation workflow for numeric observations is shown below, where the rectangles represent Kafka queues, and the circles represent processing bolts.
+
+![Basic Workflow Overlay](graphics/KafkaWorkflow.png?raw=true "Kafka Workflow")
+
+
+### Initial Processing
+
+All 
 
 ## Routing and Semantic Information
 
@@ -40,11 +55,17 @@ The creation of much of the above registry will be automatically generated throu
 The example above highlights the reason why it is necessary to use the phenomena rather than individual sensors for rules where possible.  It provides flexibility, and the automated use of new data sources as they are added to the system.  While it is an attempt at a generic solution, it is known that in many instances such automated rules of QC and comparison will be too generic, or lacking in knowledge about outlier stations or unique within our collected observation points, and this will have to be addressed once the preliminary case-study has commenced.
 
 
+
+The diagram above describes the general flow for all numerical observations, 
+
 ### Registry Design
 
 TBD.
 
 ## Processing Steps
+
+### Overall Processing Flow
+
 
 ### RAW Observations
 

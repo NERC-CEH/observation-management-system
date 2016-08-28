@@ -1,8 +1,36 @@
 # Observation Quality Control
 
+## Implementation
+
+The implementation of the QC checks are located both in the processing workflows and the registry.  Within the processing workflows, the framework for the checks are housed, while the registry contains the initial reference parameters, the thresholds, and other information related to the checks.  Some of the checks rely on state information, held within the Apache Flink, to supply the recursive changing behaviour of online techniques.
+
+### Basic Checks
+
+#### Meta-Data (Maintenance, Cleaning, Battery)
+
+Checks relating to meta-data about a site, platform, sensor unit etc., such as whether maintenance was carried out at a given time, if cleaning was not carried out as expected, or the battery was outside the accepted operating range.  Any of these situations can effect the reliable recording of observations, and so they are harvested, recorded, and observations updated.
+
+Todo: Link to code implementation
+
+#### Timeseries Coherence
+
+The coherence of the timeseries with regard to temporal order and spacing is another basic check.  First the assumption that observation timestamps should be recorded from the logger in ascending time order is checked.  The second check compares the time between consecutive timestamps with the expected spacing between observations.  If either of these checks show unexpected behaviour, the observation is marked as failing the test.
+
+### Basic Threshold Checks
+
+#### Range
+
+#### Sigma
+
+#### Delta Step
+
+#### Delta Spike
+
+## Background Information
+
 With the volume of data being collected by both sensors and manual sampling, automated quality control (QC) is increasingly necessary to highlight potential issues with the data.  By automating checks it allows for more targeted analysis by data managers, with less time spent eyeballing plots searching for issues.  As well as the automated QC, there is the generation of data-products as a result of the QC process, however this section focuses solely on the tests that can be used for judging data quality and the associated meta-data to represent the test outcomes.
 
-## Flag Systems
+### Flag Systems
 
 Starting with the literature, below are two examples of suggested flag schemes to use when performing QC checks, that indicate the state of the observation.  The first is taken from Campbell et al. (2013), providing both internal and external flags.  
 
@@ -54,7 +82,7 @@ As well as an overall flag value, each observation will have multiple individual
 
 The determination of the overall flag value is interesting problem, as there have recently been machine learning and fuzzy logic examples of this ultimate decision, and it is one that would hopefully use such techniques, rather than inflexible static rules.  An example of not using static rules would be if a set of observations are recorded when the battery voltage is lower than can be guaranteed to generate correct observations, but the signal behaves as expected based on observations before and after the low battery period, based on forecasts and expected behaviour, and show no other issues, then these could be marked as 'good' rather than say 'suspect'.
 
-## Database Representation
+### Database Representation
 
 Within the database, the [representation](../observation-sensor-representation/OGCStandardsBasedDesign.md) of individual QC checks includes columns for both a quantitative and qualitative value, and a comment on the particular check.  By storing a comment for every test, it becomes possible to qualify tests that are dependent on data who's arrival can be delayed by weeks, as well as providing a space for comments left by the techniques used, or to be overwritten by a human operator.
 
@@ -63,7 +91,7 @@ Regarding checks that depend on late arriving data, such as whether a sensor was
 The qualitative and quantitative columns allow for a richer recording of QC check outcomes.  For example, the qualitative value allows recording the individual 'pass' or 'fail' status of each check, allowing for finer grained later analysis.  The quantitative column allows for a distance metric to be recorded for checks where there are boundary, optimal, or acceptable regions of value.  For instance, if a check has a boundary threshold which an observations exceeds, the distance between the threshold and the observation can be recorded.  For observations that pass, the distance within the threshold is also recorded, as this data makes for an interesting feature, and provides the potential for later QC checks to use these features for more informed analysis.
 
 
-## Standard QC Checks
+### Standard QC Checks
 
 A brief list of the standard QC checks found in a variety of the literature is found below.
 
@@ -79,31 +107,31 @@ QC Type | Description | Found In
 
 The contents of the table above will be explored in more detail below, paper by paper, summarising the approaches described when not having been covered by a preceding paper.  The first of these subsections however will describe the existing checks that were already implemented in the original system.  These include range and internal consistency based checks.
 
-### Existing Checks
+#### Checks Within Legacy System
 
-#### Static Min/Max Range
+##### Static Min/Max Range
 
 Every sensor has a minimum and maximum value that is static throughout the year, year on year, and provides a straightforward range check for the more extreme values at either end of the sensor's recording range.  The values for this check come from the catalogue's meta-data about the particular sensor.
 
-#### Maintenance Period
+##### Maintenance Period
 
 When maintenance is carried out on a sensor platform, the temporal period is recorded and any observations that fall within the maintenance period are marked as such.  This check is executed after maintenance is carried out, as it is not possible ahead of time to know exactly when work will be carried out to the minute.  This makes cause to reprocess observations when maintenance periods are updated.
 
-#### Missed Cleaning Period
+##### Missed Cleaning Period
 
 Related to the above maintenance period, if due to circumstances it is not possible to carry out routine scheduled maintenance tasks such as cleaning optical sensors, the time between the missed maintenance period and the next successful one is recorded.  Any observations generated by sensors that require cleaning are marked as suspect due to this.  Similar to the maintenance period, some observations would need to be reprocessed depending on when the missed cleaning period was identified and added to the system.
 
-#### Low Battery
+##### Low Battery
 
 There is a set voltage threshold that when readings drop below it, any observations generated by sensors connected to the system become suspect.
 
-#### Missing/NA/Null Value
+##### Missing/NA/Null Value
 
 If the value recorded is missing/NA/Null, flag as an issue.
 
-### The AmeriFlux data activity and data system: an evolving collection of data management techniques, tools, products and services (Boden et al. 2013)
+#### The AmeriFlux data activity and data system: an evolving collection of data management techniques, tools, products and services (Boden et al. 2013)
 
-#### Internal Consistency
+##### Internal Consistency
 
 * Nighttime radiation
     + Identify sunrise and sunset times (Weather API), and any values greater than a set threshold, flag.  Q: would moon cycles need to also be tracked, how sensitive are the instrumentation?
@@ -114,30 +142,30 @@ If the value recorded is missing/NA/Null, flag as an issue.
 * Discontinuity and inter-annual variation
     + checking for changes in trend between time spans looking for evidence of drift.
 
-#### External Consistency
+##### External Consistency
 
 * Sites within 50 km distance and 100 m height delta with similar observations are used for correlation and comparison checks.
 
-### Guidelines on validation procedures for meteorological data from automatic weather stations (Estevez et al. 2011)
+#### Guidelines on validation procedures for meteorological data from automatic weather stations (Estevez et al. 2011)
 
 Provides a number of checks aggregated from preceding literature, focusing on range, step, persistence, internal and spatial consistency checks.  The checks are a mixed set of explicit reference values such as temperature delta not being greater than four degrees in a half hour, or the air temperature not exceeding 50 degrees Celsius.  A large number are logic checks, such as the current observation cannot be greater than the highest observation in the current thirty minute window.
 
 
-### Automated quality control methods for sensor data: a novel observatory approach (Taylor and Loescher 2013)
+#### Automated quality control methods for sensor data: a novel observatory approach (Taylor and Loescher 2013)
 
 Providing range, sigma, delta, step, null, and gap tests, they discuss a data-driven method to infer realistic bounds from historical data.  At first sampling of data characteristics is discussed, such as sampling the minimum values for a given sensor over a window of N observations, before being replaced by an exponentially weighted moving average.
 
 This appears to be an extension of the work in Hasu & Aaltonen (2011).
 
 
-## Overall Flag Allocation
+### Overall Flag Allocation
 
 Currently there has been a lot of research into applying machine learning (ML) techniques such as clustering, classification, and fuzzy logic to the task of overall observation QC flag assignment.  The general approach has been to use the output from QC checks, whether binary, categorical, or distance based, as the features in ML techniques (Rahman et al. 2014).  An example of how such techniques can be applied is by using the TEDA based eccentricity value of a data-point, and the distance between an observation and a number of different forecast values from techniques such as dynamic harmonic regression or simple historical weighted windowed averages as the features within an online clustering or classification technique.  The choice of which technique to use depends on the datastream and how much it is expected to change over time compared to historical data, and what type of inference can be made on clustered groups.
 
 The WaterML2 (TimeSeriesML) specification provides both a qualitative and quantitative overall quality flag for observations, which fits well with the above approach.
 
 
-# References
+## References
 
 Boden, T.A., Krassovski, M. and Yang, B., 2013. The AmeriFlux data activity and data system: an evolving collection of data management techniques, tools, products and services. Geoscientific Instrumentation, Methods and Data Systems, 2(1), pp.165-176.
 
