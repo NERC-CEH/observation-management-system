@@ -1,0 +1,209 @@
+---
+title: "TEDA: Typicality and Eccentricity Data Analytics with Monitoring Data"
+author: "David B. Ciar"
+date: "25 August 2016"
+output: 
+  html_document: 
+    fig_caption: yes
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+---
+
+# Introduction
+
+There have been a number of historical and contemporary analysis methods that have been applied to data-streams, each with differing levels of assumptions that must be made if we are to expect the techniques to work correctly.  Statistical approaches may require assumptions such as each observation being independent, random, and conforming to a previously selected distribution (iid.).  Machine learning approaches, such as K-means or KNN clustering require some apriori knowledge of the clusters to be able to choose optimal K values, with the former also assuming cluster have a uniform circular shape.  The whole range of offline methods, where a model is trained on historical data and then used online is only viable when there can be a guarantee of no concept drift or evolution in the data-stream characteristics.  Further these offline-based models may require windows of data that would be computationally expensive to store.  All of the above caveats have led to the development of a new non-parametric data analytics framework (Angelov, P. 2014) that uses distance ratios to achieve results on par with many of the current statistical and ML approaches, but without the need for any assumptions to be made or apriori information.
+
+This new approach, Typicality and Ecentricity Data Analytics (TEDA), was developed by Plamen Angelov at the University of Lancaster InfoLab/Data Science Institute (DSI), and first published on in 2014.  Since then there has been a number of papers on topics such as clustering (Bezerra, C.G. et al. 2016), classification and regression (Kangin, D. et al. 2015), typicality distribution functions (TDF) in place of the conventional probability distribution functions (Angelov, P. 2015), and the core TEDA process in use with example industrial machine data as an example of detecting problematic behaviour (Costa, B.S.J. et al. 2015).  The non-parametric nature of the framework allows for deployment without configuration, while the recursive nature allows for minimum amount of necessary data to be stored between observations.
+
+Below the batch and recursive implementations will be introduced and discussed, with examples using synthetic and real data, as well as combinations of the two.
+
+# Initial Batch Implementation
+
+#
+# Batch and Recursive Implementations
+
+There appear to be two differing sets of equations for the calculation of the eccentricity and typicality (1 - eccentricity).  The first set appear in the 2014 paper (Angelov, P. 2014), while the later method appears in a 2016 paper (Bezerra, C.G. et al. 2016)
+
+
+There are two implementations of the TEDA equations, the first is a batch mode, and the second a recursive mode.  The eccentricity calculation for both modes is:
+
+$\xi(x_{k}) = \frac{1}{k}+\frac{(\mu_{k}-x_{k})^2}{k\sigma^{2}_{k}}$
+
+The mean and variance can be calculated as normal for the batch operation, or for the recursive mode the mean is given by:
+
+$\mu_{k} = \frac{k-1}{k}\mu_{k-1}+\frac{1}{k}x_{k}, \mu_{1} = x_{1}$
+
+While the variance is given by:
+
+$\sigma^{2}_{k} = \frac{k-1}{k}\sigma^2_{k-1}+\frac{1}{k-1}||x_{k}-\mu_{k}||^2, \sigma^2_{1} = 0$
+
+
+
+- Two methods, describe both, examine with the example data from the paper, and then with hourly averaged data from the UKLEON network.
+
+```{r setup_environment, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+
+# Setup the environment 
+#
+# =============================================================================
+library(data.table)
+library(lubridate)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(reshape2)
+
+```
+
+```{r batch-implementation}
+# 
+# alg <- read.table('~/Data/LEG/LTM/algae.csv',
+#                 header=TRUE,
+#                 sep=',')
+# chem <- read.table('~/Data/LEG/LTM/chemistry.csv',
+#                 header=TRUE,
+#                 sep=',')
+# sec <- read.table('~/Data/LEG/LTM/secchi.csv',
+#                 header=TRUE,
+#                 sep=',')
+# to <- read.table('~/Data/LEG/LTM/tempoxy.csv',
+#                 header=TRUE,
+#                 sep=',')
+
+sbas <- fread('../test-data/D1_SBAS.csv')
+
+generate_eccentricity = function(univariate_vector){
+
+  # Accumulated Proximity: The sum of the dinstances
+  #   from a given data point j to all other k samples
+  sum_pi = function(val_vector){
+    sum(as.matrix(dist(val_vector,diag=TRUE,upper=TRUE)))
+  }
+  
+  # Distance between point of interest and all other points
+  sum_d = function(index, val_vector){
+    sum(abs(val_vector[index] - val_vector[1:length(val_vector)]))
+  }
+  
+  # Eccentricity: the relative (normalised) accumulated 
+  #   proximity of that data sample as a fraction of the 
+  #   accumulated proximity of all other data samples.
+  # eccentricity = function(y, j){
+  #  (2*sum_d(j,y)) / sum_pi(y)
+  # }  
+  eccentricity = function(val_vector, curr_pos, spi){
+   (2*sum_d(curr_pos,val_vector)) / spi
+  }  
+    
+  ecc = c()
+  spi = sum_pi(univariate_vector)
+  
+  for(curr in 1:length(univariate_vector)){
+    ecc <- c(ecc, eccentricity(univariate_vector, curr, spi))
+  }
+  
+  return(ecc)
+ }
+# 
+# secchi = sec$DISKVALU[!is.na(sec$DISKVALU)]
+# eccs <- generate_eccentricity(secchi)
+# eccs <- data.frame(eccs)
+# eccs$idx = 1:dim(eccs)[1]
+# eccs$eccsN <- eccs$eccs/2
+# ggplot(eccs)+
+#   geom_point(aes(x=idx,y=eccsN))
+# 
+# sd2 = 5/(2*dim(eccs)[1])
+# sd2check = 5/(dim(eccs)[1])
+# 
+# eccs$norm1 = eccs$eccsN > sd2
+# eccs$norm2 = eccs$eccsN > sd2check
+# eccs$normBoth = eccs$norm1 | eccs$norm2
+# 
+# sum(eccs$norm1)
+# sum(eccs$norm2)
+# 
+# 
+# ggplot(eccs)+
+#   geom_point(aes(x=idx,y=eccsN, colour=normBoth))
+# 
+# subsecchi <- sec[!is.na(sec$DISKVALU),]
+# sec_ecc <- cbind(subsecchi,eccs)
+# 
+# ggplot(sec_ecc)+
+#   geom_point(aes(x=idx,y=DISKVALU, colour=normBoth))
+# 
+# outliers <- sec_ecc %>%
+#   filter(normBoth == TRUE) %>%
+#   select(SITEVARI) %>%
+#   distinct()
+
+
+# y = c(20,12,10)
+# eccentricity(y,1) # 0.9
+# eccentricity(y,2) # 0.5
+# eccentricity(y,3) # 0.6
+```
+
+
+```{r recursive-implementation}
+
+# Recursive TEDA from "A New Evolving Clustering Algorithm for Online Data Streams:
+
+rec_teda = function(curr_val, previous_mean, previous_var, k){
+
+  rec_mean = function(k, previous_mean, curr_val){
+    
+    (((k - 1)  / k) * previous_mean) + ((1 / k) * curr_val)
+  }
+  
+  rec_var = function(k,prev_var, curr_val, curr_mean){
+    
+    (((k - 1) / k) * prev_var) + (1 / (k - 1)) * ((curr_val - curr_mean)^2)
+  }
+  
+  rec_ecc = function(k, curr_mean, curr_var){
+    
+    (1 / k) +  (((curr_mean - curr_val)^2) / (k * curr_var))
+    
+  }
+  
+  if(k == 1){
+    mean_val = rec_mean(k, curr_val, curr_val)
+    var_val = rec_var(k, 0, curr_val, mean_val)
+    ecc_val = rec_ecc(k, mean_val, var_val)    
+  }else if (k == 2){
+    mean_val = rec_mean(k, previous_mean, curr_val)
+    var_val = rec_var(k, 0, curr_val, mean_val)
+    ecc_val = rec_ecc(k, mean_val, var_val)    
+  }else {
+    mean_val = rec_mean(k, previous_mean, curr_val)
+    var_val = rec_var(k, previous_var, curr_val, mean_val)
+    ecc_val = rec_ecc(k, mean_val, var_val)    
+  }
+  return(c(mean_val,var_val,ecc_val))
+}
+
+```
+
+
+
+# References
+
+Angelov, P., 2014. Outside the box: an alternative data analytics framework. Journal of Automation, Mobile Robotics & Intelligent Systems 8, 29–35. doi:10.14313/JAMRIS_2-2014/16
+
+Angelov, P., 2015. Typicality distribution function - A new density-based data analytics tool. IEEE, pp. 1–8. doi:10.1109/IJCNN.2015.7280438
+
+Bezerra, C.G., Costa, B.S.J., Guedes, L.A., Angelov, P.P., 2016. A new evolving clustering algorithm for online data streams. IEEE, pp. 162–168. doi:10.1109/EAIS.2016.7502508
+
+Costa, B.S.J., Bezerra, C.G., Guedes, L.A., Angelov, P.P., 2015. Online fault detection based on Typicality and Eccentricity Data Analytics. IEEE, pp. 1–6. doi:10.1109/IJCNN.2015.7280712
+
+Kangin, D., Angelov, P., 2015. Evolving clustering, classification and regression with TEDA. IEEE, pp. 1–8. doi:10.1109/IJCNN.2015.7280528
+
+
