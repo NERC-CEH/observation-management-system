@@ -10,7 +10,7 @@ output:
     toc: yes
 ---
 
-```{r setup_environment, include=FALSE}
+```{r setup-environment, include=FALSE}
 knitr::opts_chunk$set(
 	echo = FALSE,
 	message = FALSE,
@@ -26,11 +26,14 @@ library(dplyr)
 library(stringr)
 library(ggplot2)
 library(reshape2)
-
+library(bit64)
+library(RcppRoll)
 ```
 
 
 ```{r setup-multiplot}
+
+# The following multiplot code was taken from the following URI:
 # http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/
 
 # Multiple plot function
@@ -43,11 +46,11 @@ library(reshape2)
 # then plot 1 will go in the upper left, 2 will go in the upper right, and
 # 3 will go all the way across the bottom.
 #
-multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+multiplot = function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   library(grid)
 
   # Make a list from the ... arguments and plotlist
-  plots <- c(list(...), plotlist)
+  plots = c(list(...), plotlist)
 
   numPlots = length(plots)
 
@@ -56,7 +59,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
     # Make the panel
     # ncol: Number of columns of plots
     # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+    layout = matrix(seq(1, cols * ceiling(numPlots/cols)),
                     ncol = cols, nrow = ceiling(numPlots/cols))
   }
 
@@ -71,7 +74,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
     # Make each plot, in the correct location
     for (i in 1:numPlots) {
       # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      matchidx = as.data.frame(which(layout == i, arr.ind = TRUE))
 
       print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
                                       layout.pos.col = matchidx$col))
@@ -86,15 +89,17 @@ There have been a number of historical and contemporary analysis methods applied
 
 This new approach, Typicality and Ecentricity Data Analytics (TEDA), was developed by Plamen Angelov at the University of Lancaster InfoLab/Data Science Institute (DSI), and first published on in 2014.  Since then there has been a number of papers on topics such as clustering (Bezerra, C.G. et al. 2016), classification and regression (Kangin, D. et al. 2015), typicality distribution functions (TDF) in place of the conventional probability distribution functions (Angelov, P. 2015), and the core TEDA process in use with example industrial machinery data as an example of detecting problematic behaviour (Costa, B.S.J. et al. 2015).  The non-parametric nature of the framework allows for deployment without configuration, while the recursive nature allows for minimum amount of necessary data to be stored between observations.
 
-Below the batch and recursive implementations will be introduced and discussed, with examples using synthetic and real data, as well as combinations of the two.  Further, the potential for use on data derived from the observations, such as the typicality of a delta, or windowed variance value will be explored, as well as the potential clustering ability on the combined QC output of the management system.
+Below the batch and recursive implementations will be introduced and discussed, with examples using observation data generated from one of CEH's sensor network.  Further, the potential for use on data derived from the observations, such as the typicality of a delta, or windowed variance value will be explored, as well as the potential clustering ability on the combined QC output of the management system.
 
-# Eccentricity and Typicality Implementatin
+# Eccentricity and Typicality
 
-Two papers have been published giving different implementations of the TEDA calculations.  The first of these (Angelov, P. 2014) provides three observation vectors for comparison to ensure correct implementation of the techniques.  The second provides a very different and succinct implementation of the calculations for recursive operation, used with a new clustering algorithm, and makes reference to four synthetic clustering datasets widely used in the literature.  By implementing both techniques, and validating against the output of the reference papers, we can validate this implementation.
+Two papers have been published giving different implementations of the TEDA calculations.  The first of these (Angelov, P. 2014) provides three observation vectors for comparison to ensure correct implementation of the techniques.  The second provides a very different and succinct implementation of the calculations for recursive operation, used with a new clustering algorithm, and makes reference to four synthetic clustering datasets widely used in the literature.  By implementing both techniques, and comparing against the output of the reference papers, we can validate this implementation.
 
-## Batch Implementation
+## Implementation
 
-The batch equations from (Angelov, P. 2014) are as follows, with $\xi$ being the operator for eccentricity, and $\tau$ being the operator for typicality:
+### Batch Implementation
+
+The initial batch equations (Angelov, P. 2014) are as follows, with $\xi$ being the eccentricity parameter, and $\tau$ being the typicality parameter:
 
 $$\pi_{k}(x_{j}) = \pi^{k}_{j} = \sum^{k}_{i=1} d_{j}, \quad k>1, \quad j>1$$
 
@@ -108,14 +113,14 @@ $$\zeta^{k}_{j} = \frac{\xi^{k}_{j}}{2}$$
 
 $$t^{k}_{j} = \frac{\tau^{k}_{j}}{k-2}$$
 
-While the code takes the following form.  The below should work with univariate and multivariate data, where each observation is represented as a row in the vector/matrix.
+The code implementing these equations takes the following form.  The below should work with univariate and multivariate data, where each observation is represented as a row in the vector/matrix.
 
-```{r teda-batch-2014, echo = TRUE}
+```{r teda-implementation-2014-batch, echo = TRUE}
 
-generate_eccentricity = function(observation_vector){
+generate_batch_eccentricity = function(observation_vector){
 
   # Accumulated Proximity: The sum of the distances
-  #   from a given data point j to all other k samples
+  #   between all observation points in both directions
   sum_pi = function(val_vector){
     sum(as.matrix(dist(val_vector,diag=TRUE,upper=TRUE)))
   }
@@ -133,12 +138,19 @@ generate_eccentricity = function(observation_vector){
   ecc = c()
   spi = sum_pi(observation_vector)
   
+  # Identify this length of the observation_vector, as it
+  #   may be a vector or matrix, with different accessors
+  if(is.vector(observation_vector))
+    obs_len = length(observation_vector)
+  else
+    obs_len = dim(observation_vector)[1]
+  
   # Eccentricity: the relative (normalised) accumulated 
   #   proximity of that data sample as a fraction of the 
   #   accumulated proximity of all other data samples.
   #
   # Calculate eccentricity for each position
-  for(curr in 1:length(observation_vector)){
+  for(curr in 1:obs_len){
     ecc = c(ecc, (2*sum(distance_matrix[curr,])) / spi)
   }
   
@@ -147,93 +159,97 @@ generate_eccentricity = function(observation_vector){
 
 ```
 
-```{r format-batch-eccentricity-plots}
+```{r teda-implementation-2014-batch-formatting}
 
-generate_ecc_plots = function(observation_vector){
+plot_univariate_batch_eccentricity = function(observation_vector){
   
-ecc = generate_eccentricity(observation_vector)
-ecc = data.frame(ecc)
+  # Generate the eccentricities, create a dataframe, and add
+  #  the original values, typicality, and normalised values
+  ecc = generate_batch_eccentricity(observation_vector)
+  eccent = data.frame(ecc)
+  colnames(eccent) = c("eccentricity")
+  
+  eccent$value = observation_vector
+  eccent$typicality = 1 - eccent$ecc
+  eccent$norm_eccentricity = eccent$eccentricity / 2
+  eccent$norm_typicality = eccent$typicality / (length(observation_vector) - 2)
+  
+  # Create the threshold for normalised eccentricity/typicality
+  eccent$norm_hline = 1/length(observation_vector)
 
-ecc$val = observation_vector
-ecc$typ = 1 - ecc$ecc
-ecc$norm_ecc = ecc$ecc / 2
-ecc$norm_typ = ecc$typ / (length(observation_vector) - 2)
+  # Generate the plots, then use multiplot to display
+  p1 = ggplot(eccent, 
+               aes(x = value, 
+                   y = eccentricity))+
+        geom_bar(stat = "identity",
+                 fill = "#000099",
+                 position = position_dodge()) +
+        ylab("Eccentricity") +
+        xlab("Value") +
+        ggtitle("Eccentricity")
+      
+  p2 = ggplot(eccent, 
+               aes(x = value, 
+                   y = norm_eccentricity)) +
+        geom_bar(stat = "identity",
+                 fill = "#000099",
+                 position = position_dodge()) +
+        ylab("Normalised Eccentricity") +
+        xlab("Value") +
+        ggtitle("Normalised Eccentricity")
+  
+  p3 = ggplot(eccent, 
+               aes(x = value, 
+                   y = typicality)) +
+        geom_bar(stat = "identity",
+                 fill = "#000099",
+                 position = position_dodge()) +
+        ylab("Typicality") +
+        xlab("Value") +
+        ggtitle("Typicality")
+  
+  p4 = ggplot(eccent, 
+               aes(x = value, 
+                   y = norm_typicality)) +
+        geom_bar(stat = "identity",
+                 fill = "#000099",
+                 position = position_dodge()) +
+  
+        ylab("Normalised Typicality") +
+        xlab("Value") +
+        ggtitle("Normalised Typicality")
 
-ecc$norm_hline = 1/length(observation_vector)
-
-p1 <- ggplot(ecc)+
-  geom_bar(aes(x = val, y = ecc),
-           stat = "identity",
-           fill = "#000099") +
-  ylab("Eccentricity") +
-  xlab("Value") +
-  ggtitle("Eccentricity")
-
-p2 <- ggplot(ecc)+
-  geom_bar(aes(x = val, y = norm_ecc),
-           stat = "identity",
-           fill = "#000099") +
-  geom_hline(aes(yintercept = norm_hline),
-             colour = "#000099",
-             linetype = 3) +
-  ylab("Normalised Eccentricity") +
-  xlab("Value") +
-  ggtitle("Normalised Eccentricity")
-
-p3 <- ggplot(ecc)+
-  geom_bar(aes(x = val, y = typ),
-           stat = "identity",
-           fill = "#000099") +
-  ylab("Typicality") +
-  xlab("Value") +
-  ggtitle("Typicality")
-
-p4 <- ggplot(ecc)+
-  geom_bar(aes(x = val, y = norm_typ),
-           stat = "identity",
-           fill = "#000099") +
-  geom_hline(aes(yintercept = norm_hline),
-             colour = "#000099",
-             linetype = 3) +
-  ylab("Normalised Typicality") +
-  xlab("Value") +
-  ggtitle("Normalised Typicality")
-
-multiplot(p1,p2,p3,p4, cols = 2)
+  multiplot(p1,p2,p3,p4, cols = 2)
 }
 
 ```
 
-Using the simple three observation vector (20, 12, 10) from the Angelov, P. (2014), we can compare the plots below with those published.  This finds that the output is in agreement.  Do note that the typicality and normalised typicality are equivelant, as the denominator for normalisation with three observations is one.
+Using the simple three observation vector `(20, 12, 10)` from Angelov, P. (2014), we can compare the plots below with those published.  This finds that the output is in agreement.  Do note that the typicality and normalised typicality are equivelant, as the denominator for normalisation with three observations is one.
 
-```{r teda-batch-2014-plot-k3}
-
+```{r teda-implementation-2014-batch-1}
 y = c(20,12,10)
-generate_ecc_plots(y)
+plot_univariate_batch_eccentricity(y)
 ```
 
-Further to the above, we add a fourth observation to the vector, (20, 12, 10, 17), which changes the eccentricity compared to the above, especially for the first observation which now exceeds the 1/k limit.  Again the output matches the published results
+Further to the above, we add a fourth observation to the vector, `(20, 12, 10, 17)`, which changes the eccentricity compared to the above, especially for the first observation which now exceeds the $1/k$ limit.  Again the output matches the published results
 
-```{r teda-batch-2014-plot-k4}
-
+```{r teda-implementation-2014-batch-2}
 y = c(20,12,10,17)
-generate_ecc_plots(y)
+plot_univariate_batch_eccentricity(y)
 ```
 
 Finally, using the example of precipitation observation data recorded near Bristol in the first two weeks of January 2014, we compare the output to the original paper and find an issue.  While the overall shape of the eccentricity matches, the values do not.  This includes two observations (between 10 and 15) which are not deemed eccentric in the paper, yet are marked as such by this implementation.  
 
-Eyeballing the observation values, they look correct, with the distances and positions looking equivelant to those in the paper.  TODO: Investigate.
+Eyeballing the observation values, they look correct, with the distances and positions looking equivelant to those in the paper.  TODO: Investigate why the eccentricity values do not equal those from the original paper.
 
-```{r teda-batch-2014-plot-k14}
-
+```{r teda-implementation-2014-batch-3}
 y = c(20.2,3,6.4,11.6,8.2,2.2,11.2,5.2,6.2,0.2,1,4.8,2.4,3.8)
-generate_ecc_plots(y)
+plot_univariate_batch_eccentricity(y)
 ```
 
+### Recursive Implementation
 
-## Recursive Implementation
-
-### Initial Implementation
+#### Initial Implementation
 
 The recursive estimation algorithm is as follows, taken close to verbatim from Angelov. P (2014):
 
@@ -260,16 +276,21 @@ $$X^{k} = \frac{k-1}{k} X^{k-1} + \frac{1}{k} || x_{k} ||^{2}, \quad X^{1} = ||x
 $$\sum^{k}_{i=q} \pi^{k}_{i} = \sum^{k-1}_{i=1}\pi^{k-1}_{i} + 2\pi^{k}_{k}, \quad \pi^{1}_{1} = 0$$
 
 
-It should be noted that we do not expect the exactly same output as the batch method due to a number of reasons.  First is that we will lose the first two observations (k = 1:2), as until k = 3 the eccentricity values will be meaningless.  Second is that the recursive values at each step are not the same as those used in the batch method, though as more data is processed they become closer approximations, and so this is another reason for a different outcome.  Third, the threshold of 1/k will be different for every observation, with the value approaching zero as the dataset continues to grow.
+It should be noted that we do not expect the exactly same output as the batch method due to a number of reasons.  First is that we will lose the first two observations (k = 1:2), as until k = 3 the eccentricity values will be meaningless.  Second is that the recursive values at each step are not the same as those used in the batch method, though as more data is processed they become closer approximations, and so this is another reason for a different outcome.  Third, the threshold of $1/k$ will be different for every observation, with the value approaching zero as the dataset continues to grow.
 
-Of note is that I am unsure of how the reference paper has used the recursive estimation, yet still given an eccentricity value to the 20.2 initial observation vector value.  If we did not remove the first two eccentricity observations, then the value of 20.2 would have eccentricity of zero, while the following value would have eccentricity of one.  This is in conflict with the graphs provided in the reference paper that shows the full fourteen value vector.
+Of note is that I am unsure of how the reference paper has used the recursive estimation, yet still given an eccentricity value to the $20.2$ initial observation vector value.  If we did not remove the first two eccentricity observations, then the value of $20.2$ would have eccentricity of zero, while the following value would have eccentricity of one.  This is in conflict with the graphs provided in the reference paper that shows the full fourteen value vector.
 
-The first plots below show the eccentricity and typicality using the same layout as the batch plots, with the x-axis ordered by the observation value.  The eccentricity plot looks quite different, but the shape of the typicality plot is very similar.  The two largest observation values have typicality values larger than in the batch method, where in this implementation they are regarded as typical.  The code is as follows:
+The first plots below show the eccentricity and typicality using the same layout as the batch plots, with the x-axis ordered by the observation value.  The plots are not exactly the same, however a similar shape does emerge.  The two largest observation values have typicality values larger than in the batch method, where in this implementation they are regarded as typical.  The code is as follows:
 
-```{r teda-recursive-2014, echo=TRUE}
+```{r teda-implementation-2014-recursive, echo=TRUE}
 
-recursive_eccentricity = function(curr_obs, k, mu, X, pi, sum_pi){
+# Recursive method takes a number of values (k, mu, X, sum_pi)
+#  which need to be past each time, as they record the current
+#  state of the algorithm.  Univariate.
+generate_recursive_eccentricity = function(curr_obs, k, mu, X, sum_pi){
   
+  # On the first iteration, there is not enough data to begin
+  #  to return eccentricities.
   if(k == 1){
     k_mu = curr_obs
     k_X = abs(curr_obs)^2
@@ -277,312 +298,219 @@ recursive_eccentricity = function(curr_obs, k, mu, X, pi, sum_pi){
     k_ecc = 0
     k_sum_pi = 0
     
-    return(c(k_mu, k_X, k_pi, k_sum_pi, k_ecc))
+    return(c(k_mu, k_X, k_sum_pi, k_ecc))
   }else{
+    # On the second and above iterations, the calculated values
+    #  are returned, though, the eccentricity does not begin to
+    #  make sense until k >= 3.
+    
+    # The following four variables: k_mu, k_X, k_pi, and k_sum_pi
+    #  use the recursive definitions
     k_mu = (((k - 1) / k) * mu) + ((1 / k) * curr_obs)
+    
     k_X = (((k - 1) / k) * X) + ((1 / k) * (abs(curr_obs)^2))
+    
     k_pi = k * ((abs(curr_obs - k_mu)^2) + k_X - (abs(k_mu)^2))
     
     k_sum_pi = sum_pi + (2 * k_pi)
     
+    # This is the eccentricity definition from the batch algorithm
     k_ecc =  (2*k_pi / k_sum_pi)
     
-    return(c(k_mu, k_X, k_pi, k_sum_pi, k_ecc))
+    return(c(k_mu, k_X, k_sum_pi, k_ecc))
   }
 }
 ```
 
-Due to the changing 1/k threshold per observation and the x-axis being ordered by value rather than processing order, the threshold line would be very erratic, and so the fill-colour yellow has been used to denote those values that are outwith the threshold.
+Due to the changing $1/k$ threshold per observation and the x-axis being ordered by value rather than processing order, the threshold line would be very erratic, and so the fill-colour yellow has been used to denote those values that are outwith the threshold.  While not a complete match to the batch version, it is a close approximation.
 
+```{r teda-implementation-2014-recursive-formatting}
 
-```{r teda-recursive-2014-plot}
-
-gen_init_rec_ecc = function(dataset, reorder,all_data){
- 
-# Holder for the eccentricity
-ecc = c()
-
-# Holder for the state values
-mu = NA
-X = NA
-pi = NA
-sum_pi = NA
-
-# For each observation in the dataset
-for(k in 1:length(y)){
-  curr_vals = recursive_eccentricity(y[k], k, mu, X, pi, sum_pi)
-  mu = curr_vals[1]
-  X = curr_vals[2]
-  pi = curr_vals[3]
-  sum_pi = curr_vals[4]
-  ecc = c(ecc,curr_vals[5])
-}
-
-eccent = data.frame(ecc)
-eccent$value = round(y)
-eccent$idx = 1:dim(eccent)[1]
-eccent$normalised_ecc = eccent$ecc / 2
-eccent$typicality = 1 - eccent$ecc 
-eccent$norm_typicality = eccent$typicality / (dim(eccent)[1] - 2)
-
-eccent$threshold = 1/1:dim(eccent)[1]
-eccent$threshold_over = eccent$normalised_ecc > eccent$threshold 
-eccent$threshold_under = eccent$norm_typicality < eccent$threshold
-
-if(!reorder)
-  eccent$value = factor(eccent$value, levels=eccent$value)
- 
-if(!all_data)
-  eccent <- eccent[3:dim(eccent)[1],]
-
-p1 <- ggplot(eccent)+
-  geom_bar(aes(x = value, y = ecc),
-           stat = "identity",
-           fill = "#000099",
-           position = position_dodge()) +
-  ylab("Eccentricity") +
-  xlab("Value") +
-  ggtitle("Eccentricity")
-
-p2 <- ggplot(eccent)+
-  geom_bar(aes(x = value, y = normalised_ecc, fill=threshold_over),
-           stat = "identity",
-           position = position_dodge(),
-           width = 0.5) +
-  ylab("Normalised Eccentricity") +
-  xlab("Value") +
-  ggtitle("Normalised Eccentricity") +
-  scale_fill_manual(values=c("#000099",'#ffff66')) +
-  guides(fill=FALSE)
+# Function to manage the eccentricity calculation with 
+#  the state variables.
+# - reorder: plot values in natural order or index/processing
+#            order
+# - all_data: plot all data, or remove the first two 
+#            eccentricity values
+# - model: whether to use the 2014 or 2016 algorithm
+# - m: the threshold to use with the 2016 algorithm
+plot_univariate_recursive_eccentricity = function(observations, 
+                                                  reorder,
+                                                  all_data, 
+                                                  model = 2014, 
+                                                  m = 2){
+   
+  # Holder for the eccentricity
+  ecc = c()
   
+  # Choose which model to use - the 2016 model is defined after this block, 
+  #   but not before it is used, making this OK.  Potentially pass the model
+  #   as an argument if this is bad form.
+  if(model == 2014){
+    # Holder for the state values
+    mu = NA
+    X = NA
+    sum_pi = NA
+    
+    # For each observation in the dataset
+    for(k in 1:length(observations)){
+      curr_vals = generate_recursive_eccentricity(observations[k], k, mu, X, sum_pi)
+      mu = curr_vals[1]
+      X = curr_vals[2]
+      sum_pi = curr_vals[3]
+      ecc = c(ecc,curr_vals[4])
+    }
+  }else{
+    # Holder for the state values
+    previous_mean = observations[1]
+    previous_var = 0
 
-p3 <- ggplot(eccent)+
-  geom_bar(aes(x = value, y = typicality),
-           stat = "identity",
-           fill = "#000099",
-           position = position_dodge()) +
-  ylab("Typicality") +
-  xlab("Value") +
-  ggtitle("Typicality")
+    # For each observation in the dataset
+    for(k in 1:length(observations)){
+      curr_vals = generate_recursive_eccentricity_two(observations[k], previous_mean, previous_var, k)
+      previous_mean = curr_vals[1]
+      previous_var = curr_vals[2]
+      ecc = c(ecc,curr_vals[3])
+    }
+  }
+  
+  # Create the dataframe with eccentricity, original values,
+  #  other derived information
+  eccent = data.frame(ecc)
+  colnames(eccent) = c("eccentricity")
+  eccent$value = observations
+  eccent$idx = 1:dim(eccent)[1]
+  eccent$norm_eccentricity = eccent$eccentricity / 2
+  eccent$typicality = 1 - eccent$eccentricity 
+  eccent$norm_typicality = eccent$typicality / (dim(eccent)[1] - 2)
+  
+  # Unlike the batch approach, the 1/k threshold changes with 
+  #  every observation, and so it is calculated as a vector,
+  #  with the technique dependent on the model used
+  if(model == 2014){
+    eccent$threshold = 1/1:dim(eccent)[1]
+    eccent$threshold_over = eccent$norm_eccentricity > eccent$threshold 
+    eccent$threshold_under = eccent$norm_typicality < eccent$threshold    
+  }else{
+    eccent$threshold = ((m^2) + 1) / (2 * 1:dim(eccent)[1])
+    eccent$threshold_over = eccent$norm_eccentricity > eccent$threshold
+    eccent$threshold_under = eccent$norm_typicality < eccent$threshold
+  }
 
-p4 <- ggplot(eccent)+
-  geom_bar(aes(x = value, y = norm_typicality, fill=threshold_over),
-           stat = "identity",
-           position = position_dodge(),
-           width = 0.5) +
-  ylab("Normalised Typicality") +
-  xlab("Value") +
-  ggtitle("Normalised Typicality") +
-  scale_fill_manual(values=c("#000099",'#ffff66')) +
-  guides(fill=FALSE)
-
-multiplot(p1,p2,p3,p4, cols = 2)
+  # If the data is to be plotted in the same order as 
+  #  observations were processed, create a factor of the 
+  #  observation value
+  if(!reorder)
+    eccent$value = factor(eccent$value, levels=eccent$value)
+  
+  # If we are not using all the data, remove the first two 
+  #  observations who's eccentricity values (0 and 1) do not
+  #  make sense.
+  if(!all_data)
+    eccent = eccent[3:dim(eccent)[1],]
+  
+  # Generate the individual plots, then display using multiplot
+  p1 = ggplot(eccent)+
+    geom_bar(aes(x = value, 
+                 y = eccentricity,
+                 group = idx),
+             stat = "identity",
+             fill = "#000099",
+             position = "dodge") +
+    ylab("Eccentricity") +
+    xlab("Value") +
+    ggtitle("Eccentricity")
+  
+  p2 = ggplot(eccent)+
+    geom_bar(aes(x = value, 
+                 y = norm_eccentricity, 
+                 fill=threshold_over,
+                 group = idx),
+             stat = "identity",
+             position = position_dodge(),
+             width = 0.5) +
+    ylab("Normalised Eccentricity") +
+    xlab("Value") +
+    ggtitle("Normalised Eccentricity") +
+    scale_fill_manual(values=c("#000099",'#ffff66')) +
+    guides(fill=FALSE)
+    
+  p3 = ggplot(eccent)+
+    geom_bar(aes(x = value, 
+                 y = typicality,
+                 group = idx),
+             stat = "identity",
+             fill = "#000099",
+             position = position_dodge()) +
+    ylab("Typicality") +
+    xlab("Value") +
+    ggtitle("Typicality")
+  
+  p4 = ggplot(eccent)+
+    geom_bar(aes(x = value, 
+                 y = norm_typicality, 
+                 fill=threshold_over,
+                 group = idx),
+             stat = "identity",
+             position = position_dodge(),
+             width = 0.5) +
+    ylab("Normalised Typicality") +
+    xlab("Value") +
+    ggtitle("Normalised Typicality") +
+    scale_fill_manual(values=c("#000099",'#ffff66')) +
+    guides(fill=FALSE)
+  
+  multiplot(p1,p2,p3,p4, cols = 2)
 
 }
+
 # Dataset
 y = c(20.2,3,6.4,11.6,8.2,2.2,11.2,5.2,6.2,0.2,1,4.8,2.4,3.8)
-
-gen_init_rec_ecc(y,TRUE,FALSE)
-
-```
-
-### Clustering Based Implementation
-
-Using the vector from the 2014 paper representing rainfall 
-
-```{r}
-# ggplot(ecc) +
-#   geom_point(aes(x=reorder(value,idx),y=norm))+
-#   geom_line(aes(x=reorder(value,idx), y=thr, group=1))
-# 
-# 
-# rec_teda = function(curr_val, previous_mean, previous_var, k){
-# 
-#   rec_mean = function(k, previous_mean, curr_val){
-# 
-#     (((k - 1)  / k) * previous_mean) + ((1 / k) * curr_val)
-#   }
-# 
-#   rec_var = function(k,prev_var, curr_val, curr_mean){
-# 
-#     (((k - 1) / k) * prev_var) + (1 / (k - 1)) * ((curr_val - curr_mean)^2)
-#   }
-# 
-#   rec_ecc = function(k, curr_mean, curr_var){
-# 
-#     (1 / k) +  (((curr_mean - curr_val)^2) / (k * curr_var))
-# 
-#   }
-# 
-#   if(k == 1){
-#     mean_val = curr_val
-#     var_val = 0
-#     ecc_val = rec_ecc(k, mean_val, var_val)
-#   }else {
-#     mean_val = rec_mean(k, previous_mean, curr_val)
-#     var_val = rec_var(k, previous_var, curr_val, mean_val)
-#     ecc_val = rec_ecc(k, mean_val, var_val)
-#   }
-#   return(c(mean_val,var_val,ecc_val))
-# }
-# 
-# previous_mean = y[1]
-# previous_var = 0
-# ecc <- c()
-# 
-# for(k in 1:length(y)){
-#   vals <- rec_teda(y[k], previous_mean, previous_var, k)
-#   previous_mean = vals[1]
-#   previous_var = vals[2]
-#   ecc = c(ecc,vals[3])
-# }
-#   
-# 
-# 
-# 
-# 
-# ecc = data.frame(ecc)
-# ecc$thr = ecc_thr
-# ecc$idx = 1:dim(ecc)[1]
-# ecc$value = y
-# ecc$norm = ecc$ecc / 2
-# ecc$hline = 1/length(y)
-# 
-# ggplot(ecc) +
-#   geom_point(aes(x=reorder(value,idx),y=norm))+
-#   geom_line(aes(x=reorder(value,idx), y=thr, group=1))
-# 
-# 
-# 
-# 
-# ecc = data.frame(ecc)
-# ecc$idx = 1:dim(ecc)[1]
-# ecc$value = y
-# 
-# ggplot(ecc) +
-#   geom_point(aes(x=value,y=ecc))
-#   
-# 
-# ecc <- generate_eccentricity(y)
-# ecc <- data.frame(ecc)
-# ecc$value = y
-# ecc$ecc = ecc$ecc / 2
-# ecc$hline = 1/dim(ecc)[1]
-# 
-# ggplot(ecc) +
-#   geom_point(aes(x=value,y=ecc)) +
-#   scale_y_continuous(breaks = c(0,0.05,0.1,0.15,0.2,0.25,0.3,0.35),
-#                      limits = c(0,0.35)) +
-#   geom_hline(aes(yintercept= hline))
+plot_univariate_recursive_eccentricity(y,TRUE,FALSE,2014)
 
 ```
 
+#### Clustering Based Implementation
 
+Finally, the most recent recursive method (Bezerra, C.G. 2016) is implemented, which uses a much simpler set of three equations as follows:
 
+$$\xi(x_{k}) = \frac{1}{k}+\frac{(\mu_{k}-x_{k})^{T}(\mu_{k}-x_{k})}{k\sigma^{2}_{k}}$$
 
-# TEDA Clustering 
+$$\mu_{k} = \frac{k-1}{k} \mu_{k-1} + \frac{1}{k}x_{k}, \quad \mu_{1} = x_{1}$$
 
-# Batch and Recursive Implementations
+$$\sigma^{2}_{k} = \frac{k-1}{k} \sigma^{2}_{k-1} + \frac{1}{k-1} || x_{k} - \mu_{k}||^{2}, \quad \sigma^{2}_{1} = 0$$
 
-There appear to be two differing sets of equations for the calculation of the eccentricity and typicality (1 - eccentricity).  The first set appear in the 2014 paper (Angelov, P. 2014), while the later method appears in a 2016 paper (Bezerra, C.G. et al. 2016)
+The normalised eccentricity, typicality, and normalised typicality are calculated in the same way as before.  The authors put forward an equation for outlier detection, using the Chebyshev inequality, where $m$ is the number of standard deviations away from the data we expect outliers to appear:
 
+$$ \zeta(x_{k}) > \frac{m^{2} + 1}{2k}, \quad m > 0$$
 
-There are two implementations of the TEDA equations, the first is a batch mode, and the second a recursive mode.  The eccentricity calculation for both modes is:
+```{r teda-implementation-2016-recursive, echo = TRUE}
 
-$\xi(x_{k}) = \frac{1}{k}+\frac{(\mu_{k}-x_{k})^2}{k\sigma^{2}_{k}}$
+# Recursive method takes the state variables of previous mean 
+#  and variance, and the current timestep position.  Univariate.
+generate_recursive_eccentricity_two = function(curr_val, previous_mean, previous_var, k){
 
-The mean and variance can be calculated as normal for the batch operation, or for the recursive mode the mean is given by:
-
-$\mu_{k} = \frac{k-1}{k}\mu_{k-1}+\frac{1}{k}x_{k}, \mu_{1} = x_{1}$
-
-While the variance is given by:
-
-$\sigma^{2}_{k} = \frac{k-1}{k}\sigma^2_{k-1}+\frac{1}{k-1}||x_{k}-\mu_{k}||^2, \sigma^2_{1} = 0$
-
-
-
-- Two methods, describe both, examine with the example data from the paper, and then with hourly averaged data from the UKLEON network.
-
-
-
-```{r batch-implementation}
-# 
-# alg <- read.table('~/Data/LEG/LTM/algae.csv',
-#                 header=TRUE,
-#                 sep=',')
-# chem <- read.table('~/Data/LEG/LTM/chemistry.csv',
-#                 header=TRUE,
-#                 sep=',')
-# sec <- read.table('~/Data/LEG/LTM/secchi.csv',
-#                 header=TRUE,
-#                 sep=',')
-# to <- read.table('~/Data/LEG/LTM/tempoxy.csv',
-#                 header=TRUE,
-#                 sep=',')
-
-# sbas <- fread('../test-data/D1_SBAS.csv')
-
-# 
-# secchi = sec$DISKVALU[!is.na(sec$DISKVALU)]
-# eccs <- generate_eccentricity(secchi)
-# eccs <- data.frame(eccs)
-# eccs$idx = 1:dim(eccs)[1]
-# eccs$eccsN <- eccs$eccs/2
-# ggplot(eccs)+
-#   geom_point(aes(x=idx,y=eccsN))
-# 
-# sd2 = 5/(2*dim(eccs)[1])
-# sd2check = 5/(dim(eccs)[1])
-# 
-# eccs$norm1 = eccs$eccsN > sd2
-# eccs$norm2 = eccs$eccsN > sd2check
-# eccs$normBoth = eccs$norm1 | eccs$norm2
-# 
-# sum(eccs$norm1)
-# sum(eccs$norm2)
-# 
-# 
-# ggplot(eccs)+
-#   geom_point(aes(x=idx,y=eccsN, colour=normBoth))
-# 
-# subsecchi <- sec[!is.na(sec$DISKVALU),]
-# sec_ecc <- cbind(subsecchi,eccs)
-# 
-# ggplot(sec_ecc)+
-#   geom_point(aes(x=idx,y=DISKVALU, colour=normBoth))
-# 
-# outliers <- sec_ecc %>%
-#   filter(normBoth == TRUE) %>%
-#   select(SITEVARI) %>%
-#   distinct()
-
-
-
-```
-
-
-```{r recursive-implementation}
-
-# Recursive TEDA from "A New Evolving Clustering Algorithm for Online Data Streams:
-# 
-rec_teda = function(curr_val, previous_mean, previous_var, k){
-
+  # Calculate the recursive mean value
   rec_mean = function(k, previous_mean, curr_val){
 
     (((k - 1)  / k) * previous_mean) + ((1 / k) * curr_val)
   }
 
+  # Calculate the recursive variance value
   rec_var = function(k,prev_var, curr_val, curr_mean){
 
     (((k - 1) / k) * prev_var) + (1 / (k - 1)) * ((curr_val - curr_mean)^2)
   }
 
+  # Calculate the recursive eccentricity value
   rec_ecc = function(k, curr_mean, curr_var){
 
     (1 / k) +  (((curr_mean - curr_val)^2) / (k * curr_var))
 
   }
 
+  # If the initial timestep, set the initial parameter values,
+  #  else, use the previous timestep values
   if(k == 1){
     mean_val = curr_val
     var_val = 0
@@ -597,6 +525,362 @@ rec_teda = function(curr_val, previous_mean, previous_var, k){
 
 ```
 
+Using the vector from the 2014 paper representing rainfall as in the previous recursive implementation, with $m$ set to $1$, we get the following output.  We can see that this matches the previous implementation, with the same observations identified as when using the $1/k$ threshold.
+
+```{r teda-implementation-2016-recursive-1}
+plot_univariate_recursive_eccentricity(y,TRUE,FALSE,2016,1)
+```
+
+When $m$ is set to $2$ however, we can see that none of the observations were eccentric enough to be identified as outliers.
+
+```{r teda-implementation-2016-recursive-2}
+plot_univariate_recursive_eccentricity(y,TRUE,FALSE,2016,2)
+```
+
+## Evaluation
+
+A number of different observation types will be used in evaluating the behaviour of the recursive TEDA algorithm, including the raw observations, the observation deltas, and the windowed variance.  The data source of the observations is the Ecological Change Network (ECN) meteorology data (Rennie, S. et al. 2015).  The data contains observations from 1992 to 2012, however the subset of observations from 1998 to 2000 will be used initially.
+
+### Ecological Change Network Meteorological Data
+
+```{r teda-evaluation-ecn-load-data, cache = TRUE}
+
+# Load the data, downloadable from the CEH data catalogue:
+# https://catalogue.ceh.ac.uk/documents/e1d33b37-f1d4-4234-a0d5-8bf4e657f653
+
+ecn_data = fread('~/Data/ECN_SWE_Data/Data/T04_MoorHouse_UpperTeesdale.csv')
+colnames(ecn_data) = tolower(colnames(ecn_data))
+
+# Within the data are the following unique fieldnames representing
+#  the individual sensors at the recording site:
+#  1:      WDIR
+#  2:    WETTMP
+#  3:    WSPEED
+#  4:    DRYTMP
+#  5:    NETRAD
+#  6:      RAIN
+#  7:     SOLAR
+#  8:    STMP10
+#  9:    STMP30
+# 10:    SURWET
+# 11:    SWATER
+# 12:    ALBGRD
+# 13:    ALBSKY
+# 14:   DRYTMP_
+# 15:        RH
+
+# Format the date time fields correctly
+ecn_data$timestamp = ymd_hms(ecn_data$sdate)
+hour(ecn_data$timestamp) = ecn_data$shour
+ecn_data$year = year(ecn_data$timestamp)
+ecn_data$doy = yday(ecn_data$timestamp)
+  
+```
+
+```{r teda-evaluation-ecn-generate-outliers}
+
+# Function to generate the eccentricity values,
+#  create the dataframe complete with eccentricity
+#  and outlier status, and return.
+
+# - observations: dataframe with a 'value' column
+#                 with observation values
+
+evaluate_teda_vect = function(observations){
+
+  # Holder for the eccentricity
+  ecc = c()
+
+  # Holders for the state values
+  previous_mean = observations$value[1]
+  previous_var = 0
+  
+  # For each observation in the dataset, generate
+  #  the eccentricity value
+  for(k in 1:length(observations$value)){
+    curr_vals = generate_recursive_eccentricity_two(observations$value[k], 
+                                                     previous_mean, 
+                                                     previous_var, k)
+    previous_mean = curr_vals[1]
+    previous_var = curr_vals[2]
+    ecc = c(ecc,curr_vals[3])
+  }
+
+  # Augment the return dataset with the derived values  
+  observations$eccentricity = ecc
+  observations$norm_eccentricity = ecc / 2
+  observations$threshold = 5 / (2 * 1:dim(observations)[1])
+  observations$outlier = observations$norm_eccentricity > observations$threshold
+
+  return(observations)
+}
+
+
+# Generate the deltas, retrieve the eccentricity, then return as
+#  the augmented dataframe
+generate_delta_teda_vect = function(observations){
+  
+  observation_deltas = observations$value[1:(dim(observations)[1]-1)] - 
+                          observations$value[2:dim(observations)[1]]
+  
+  time_deltas = observations$timestamp[1:(dim(observations)[1]-1)] - 
+                          observations$timestamp[2:dim(observations)[1]]
+
+  # Augment the original data frame
+  observations$delta = c(0, observation_deltas)
+  observations$time_delta = c(0, time_deltas)
+
+  # All data within this dataset should have a 1 hour spacing, if this
+  #  is exceeded, then the delta will also be unrealistic. Filter 
+  #  based on this
+  observation_deltas = observation_deltas[time_deltas == -1]
+
+  # Generate the eccentricities
+  observation_deltas = data.frame(observation_deltas)
+  colnames(observation_deltas) = c("value")
+  observation_deltas = evaluate_teda_vect(observation_deltas)
+  
+  # Augment the original data frame and return
+  observations$eccentricity = NA
+  observations$eccentricity[c(0,time_deltas) == -1] = observation_deltas$eccentricity
+  
+  observations$norm_eccentricity = NA
+  observations$norm_eccentricity[c(0,time_deltas) == -1] = observation_deltas$norm_eccentricity
+  
+  observations$threshold = NA
+  observations$threshold[c(0,time_deltas) == -1] = observation_deltas$threshold
+  
+  observations$outlier = NA
+  observations$outlier[c(0,time_deltas) == -1] = observation_deltas$outlier
+  
+  return(observations)
+}
+
+```
+
+#### Dry Bulb Temperature - Observations
+
+The dry bulb temperature is recorded using a sensor protected from the elements, but which is in contact with the air (such as a sensor located within a Stevenson screen).  The data has been subset to the 1998 - 2000 range.  We can see that the daily changes are quite varied, and that there is an increase in the average temperature over the summer.  
+
+```{r teda-evaluation-ecn-drybulb-data, cache = TRUE}
+
+# Subset the ECN observations and retrieve the dry temperature
+#  only.
+dry_temp = ecn_data %>%
+  filter(fieldname == "DRYTMP" &
+           year >= 1998 &
+           year <= 2000 &
+           !is.na(value))
+
+```
+
+
+
+
+```{r evaluation-ecn-drybulb-introduction}
+ggplot(dry_temp) +
+  geom_point(aes(x=doy, y=value),colour="#000099") +
+  facet_grid(year ~ .) +
+  ylab("Temperature / degrees Celsius") +
+  xlab("Day of year") +
+  ggtitle("Dry Bulb Temperature 1998 - 2000")
+
+```
+
+Running the eccentricity analysis we get the following, where the outliers have been highlighted in the data.  The threshold used was $m = 2$, and this appears to have generated an area where values lower than minus five, or higher than fifteen are marked as outliers.
+
+```{r evaluation-ecn-drybulb-teda-1}
+
+dry_temp = evaluate_teda_vect(dry_temp)
+
+
+ggplot(dry_temp) +
+  geom_point(aes(x=doy, y=value,
+                 colour = outlier)) +
+  facet_grid(year ~ .)+
+  ylab("Temperature / degrees Celcius") +
+  xlab("Date Time") +
+  ggtitle("Temperature with Outliers Highlighted") +
+  scale_colour_manual(name = "Outlier?",
+                        values = c("#000099",'#ffff66'))    
+
+```
+
+Zooming in on the first group of observations marked as outliers, we can see that in the month of May, there were seven, one, and five days where the temperatures exceeded the eccentricity limit.
+
+```{r evaluation-ecn-drybulb-teda-2}
+dry_temp_sub = dry_temp %>%
+  filter(doy >= 125 &
+           doy <= 150)
+year(dry_temp_sub$timestamp) = 0
+
+ggplot(dry_temp_sub) +
+  geom_point(aes(x=timestamp, y=value,
+                 colour = outlier)) +
+  facet_grid(year ~ .) +
+  ylab("Temperature / degrees Celcius") +
+  xlab("Date Time") +
+  ggtitle("Temperature with outliers highlighted (subset)") +
+  scale_colour_manual(name = "Outlier?",
+                      values = c("#000099",'#ffff66'))    
+```
+
+Plotting the density of the observation values, faceted on whether the observation was marked as an outlier or not, we can clearly see that acceptable observation values are centred around five, with plus or minus ten either way.  There are however observations around this mid-point that are getting marked as outliers.  On closer inspection these are all observations at the start of 1998 as the algorithm is starting, as opposed to say cold observations in summer, or warm observations in winter.
+
+```{r evaluation-ecn-drybulb-teda-3}
+dry_temp$outliers = "Eccentricity > 2 sigma"
+dry_temp$outliers[dry_temp$outlier == FALSE] = "Eccentricity <= 2 sigma"
+
+ggplot(dry_temp, aes(x=value)) +
+  geom_histogram(aes(y=..density..),
+            binwidth = 0.5,
+            colour = "black",
+            fill = "#ffff66") +
+  geom_density(alpha=.2, fill = "#000099")+
+  facet_grid(. ~ outliers) +
+  ylab("Density") +
+  xlab("Temperature / degrees Celsius") +
+  ggtitle("Density of Observations, Faceted by Eccentricity Threshold")
+
+```
+
+#### Dry Bulb Temperature - Delta
+
+The delta is the rate of acceleration between an observation and the subsequent observation following it.  It would be expected that the delta values increase in the summer, and decrease over winter, and we can see that the largest variations are within the summer months below.  This plot shows that most deltas fall between plus or minus one, centered around zero.  The observations in all of the analysis below have had the delta of any observations that do not fall within one hour of each other removed.
+
+```{r evaluation-ecn-drybulb-delta-intro}
+
+  delta_observations = generate_delta_teda_vect(dry_temp)
+
+  # remove observations where the time delta is not as expected
+  delta_observations = delta_observations %>%
+    filter(time_delta == -1)
+  
+  ggplot(delta_observations) +
+   geom_point(aes(x=doy,y=delta),colour="#000099") +
+    facet_grid(year ~ .) +
+  ylab("Change in Temperature / degrees Celsius") +
+  xlab("Day of Year") +
+  ggtitle("Temperature Delta of Consecutive Observations")
+
+```
+
+Running the delta values through the eccentricity algorithm we get the following output, where the core of the values are OK, but those exceeding plus or minus 1.5 on either side of zero are being marked as outliers.  It is also very apparent that the summer period has by far the greater amount of outliers than the start and end of each year.
+
+```{r evaluation-ecn-drybulb-delta-eccentricity}
+
+ggplot(delta_observations) +
+  geom_point(aes(x=doy,y=delta, colour = outlier)) +
+  facet_grid(year ~ .)+
+  ylab("Change in Temperature / degrees Celsius") +
+  xlab("Date Time") +
+  ggtitle("Temperature Delta with Outliers Highlighted") +
+  scale_colour_manual(name = "Outlier?",
+                      values = c("#000099",'#ffff66'))    
+
+```
+
+Looking at a subset of the data, where we can view the individual hourly observations, it is clear that the areas where the outliers occur are those that are sparcely filled due to rapid changes of value.  Again, this makes sense as these rapid changes occur more often in the summer months, leading to a greater number of outliers.
+
+```{r evaluation-ecn-drybulb-delta-eccentricity-subset}
+
+delta_observations_sub = delta_observations %>%
+  filter(doy >= 100 &
+           doy <= 150)
+
+year(delta_observations_sub$timestamp) = 0
+
+ggplot(delta_observations_sub) +
+  geom_point(aes(x=timestamp, y=value,
+                 colour = outlier)) +
+  facet_grid(year ~ .) +
+  ylab("Change in Temperature / degrees Celcius") +
+  xlab("Date Time") +
+  ggtitle("Temperature Delta with Outliers Highlighted (subset)") +
+  scale_colour_manual(name = "Outlier?",
+                      values = c("#000099",'#ffff66'))    
+```
+
+Looking at the density plot we can see that the observation values associated with the deltas that exceed the eccentricity form a distribution with a median value greater than those whos deltas do not exceed the eccentricity.
+
+```{r evaluation-ecn-drybulb-delta-eccentricity-distribution}
+
+delta_observations$outliers = "Eccentricity > 2 sigma"
+delta_observations$outliers[delta_observations$outlier == FALSE] = "Eccentricity <= 2 sigma"
+ggplot(delta_observations, aes(x=value)) +
+  geom_histogram(aes(y=..density..),
+            binwidth = 0.5,
+            colour = "black",
+            fill = "#ffff66") +
+  geom_density(alpha=.2, fill = "#000099")+
+  facet_grid(. ~ outliers) +
+  ylab("Density") +
+  xlab("Temperature / degrees Celsius") +
+  ggtitle("Density of Observations, Faceted by Delta Eccentricity Threshold")
+
+```
+
+#### Dry Bulb Temperature - Sigma (variance)
+
+```{r evaluation-ecn-drybulb-delta-2}
+
+
+#  sd_vals_3 = roll_sd(x=dataset[,get(column)],n=window_size,na.rm=TRUE)
+
+
+# 
+# 
+# 
+# # Holder for the eccentricity
+# ecc = c()
+# 
+# # Holder for the state values
+# previous_mean = delta$deltas[1]
+# previous_var = 0
+# 
+# # For each observation in the dataset
+# for(k in 1:length(delta$deltas)){
+#   curr_vals = rec_teda(delta$deltas[k], previous_mean, previous_var, k)
+#   previous_mean = curr_vals[1]
+#   previous_var = curr_vals[2]
+#   ecc = c(ecc,curr_vals[3])
+# 
+# }
+# 
+# dry_temp$delta = c(0,delta$deltas)
+# dry_temp$ecc = c(0,ecc)
+# dry_temp$norm_ecc = dry_temp$ecc /2
+# thresh = 5/(2*(1:17519))
+# dry_temp$thresh = c(0,thresh)
+# dry_temp$outlier = dry_temp$norm_ecc > dry_temp$thresh
+# 
+# dry_temp = dry_temp[!is.na(dry_temp$outlier),]
+# 
+# ggplot(dry_temp) +
+#   geom_point(aes(x=doy, y=delta,
+#                  colour = outlier)) +
+#   facet_grid(year ~ .)
+# 
+# 
+# ggplot(dry_temp) +
+#   geom_point(aes(x=doy, y=delta,
+#                  colour = outlier)) +
+#   facet_grid(year ~ outlier)
+# 
+# ggplot(dry_temp) +
+#   geom_point(aes(x=doy, y=value,
+#                  colour = outlier)) +
+#   facet_grid(year ~ outlier)
+
+```
+
+## Findings
+
+Based on what the data around it is doing, but not taking anything else into consideration - dhr likely better by far.
+
+Also really looks like there are signals in the deltas (dry bulb) - auto-correlation.
+
+# TEDA Clustering 
 
 
 # References
@@ -611,4 +895,4 @@ Costa, B.S.J., Bezerra, C.G., Guedes, L.A., Angelov, P.P., 2015. Online fault de
 
 Kangin, D., Angelov, P., 2015. Evolving clustering, classification and regression with TEDA. IEEE, pp. 1–8. doi:10.1109/IJCNN.2015.7280528
 
-
+Rennie, S., Adamson, J., Anderson, R., Andrews, C., Bater, J., Bayfield, N., Beaton, K., Beaumont, D., Benham, S., Bowmaker, V., Britt, C., Brooker, R., Brooks, D., Brunt, J., Common, G., Cooper, R., Corbett, S., Critchley, N., Dennis, P., Dick, J., Dodd, B., Dodd, N., Donovan, N., Easter, J., Eaton, E., Flexen, M., Gardiner, A., Hamilton, D., Hargreaves, P., Hatton-Ellis, M., Howe, M., Kahl, J., Lane, M., Langan, S., Lloyd, D., McElarney, Y., McKenna, C., McMillan, S., Milne, F., Milne, L., Morecroft, M., Murphy, M., Nelson, A., Nicholson, H., Pallett, D., Parry, D., Pearce, I., Pozsgai, G., Rose, R., Schafer, S., Scott, T., Sherrin, L., Shortall, C., Smith, R., Smith, P., Tait, R., Taylor, C., Taylor, M., Thurlow, M., Turner, A., Tyson, K., Watson, H., Whittaker, M., Wilkinson, M. (2015). UK Environmental Change Network (ECN) meteorology data: 1992-2012. NERC Environmental Information Data Centre. http://doi.org/10.5285/e1d33b37-f1d4-4234-a0d5-8bf4e657f653
