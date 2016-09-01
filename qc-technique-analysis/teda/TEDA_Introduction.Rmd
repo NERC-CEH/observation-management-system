@@ -85,7 +85,7 @@ multiplot = function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 # Introduction
 
-There have been a number of historical and contemporary analysis methods applied to data-streams rather than batch data, each with differing levels of assumptions that must be made if we are to expect the techniques to work correctly (Angelov, P. 2014).  Statistical approaches may require assumptions such as each observation being independent, random, and conforming to a previously selected distribution (iid.).  Machine learning approaches, such as K-means or KNN clustering require some apriori knowledge of the clusters to be able to choose optimal K values, with the former also assuming cluster have a uniform circular shape.  The whole range of offline methods, where a model is trained on historical data and then used online is only viable when there can be a guarantee of no concept drift or evolution in the data-stream characteristics.  Further these offline-based models may require windows of data that would be computationally expensive to store.  A new non-parametric data analysis framework (Angelov, P. 2014) that uses distance ratios to calculate the typicality of a data point negates all of the above caveats.
+There have been a number of historical and contemporary analysis methods applied to data-streams rather than batch data, each with differing levels of assumptions that must be made if we are to expect the techniques to work correctly (Angelov, P. 2014).  Statistical approaches may require assumptions such as each observation being independent, random, and conforming to a previously selected distribution (iid.).  Machine learning approaches, such as K-means or KNN clustering, require some apriori knowledge of the clusters to be able to choose optimal K values, with the former also assuming clusters have a uniform circular shape.  The whole range of offline methods, where a model is trained on historical data and then used online is only viable when there can be a guarantee of no concept drift or evolution in the data-stream characteristics.  Further these offline-based models may require windows of data that would be computationally expensive to store.  A new non-parametric data analysis framework (Angelov, P. 2014) that uses distance ratios to calculate the typicality of a data point negates all of the above caveats.
 
 This new approach, Typicality and Ecentricity Data Analytics (TEDA), was developed by Plamen Angelov at the University of Lancaster InfoLab/Data Science Institute (DSI), and first published on in 2014.  Since then there has been a number of papers on topics such as clustering (Bezerra, C.G. et al. 2016), classification and regression (Kangin, D. et al. 2015), typicality distribution functions (TDF) in place of the conventional probability distribution functions (Angelov, P. 2015), and the core TEDA process in use with example industrial machinery data as an example of detecting problematic behaviour (Costa, B.S.J. et al. 2015).  The non-parametric nature of the framework allows for deployment without configuration, while the recursive nature allows for minimum amount of necessary data to be stored between observations.
 
@@ -278,7 +278,7 @@ $$\sum^{k}_{i=q} \pi^{k}_{i} = \sum^{k-1}_{i=1}\pi^{k-1}_{i} + 2\pi^{k}_{k}, \qu
 
 It should be noted that we do not expect the exactly same output as the batch method due to a number of reasons.  First is that we will lose the first two observations (k = 1:2), as until k = 3 the eccentricity values will be meaningless.  Second is that the recursive values at each step are not the same as those used in the batch method, though as more data is processed they become closer approximations, and so this is another reason for a different outcome.  Third, the threshold of $1/k$ will be different for every observation, with the value approaching zero as the dataset continues to grow.
 
-Of note is that I am unsure of how the reference paper has used the recursive estimation, yet still given an eccentricity value to the $20.2$ initial observation vector value.  If we did not remove the first two eccentricity observations, then the value of $20.2$ would have eccentricity of zero, while the following value would have eccentricity of one.  This is in conflict with the graphs provided in the reference paper that shows the full fourteen value vector.
+Of note is that I am unsure of how the reference paper has used the recursive estimation, yet still given an eccentricity value to the $20.2$ initial observation vector value.  If we did not remove the first two eccentricity observations, then the value of $20.2$ would have eccentricity of zero, while the following value would have eccentricity of one.  This is in conflict with the graphs provided in the reference paper that show the full fourteen value vector.
 
 The first plots below show the eccentricity and typicality using the same layout as the batch plots, with the x-axis ordered by the observation value.  The plots are not exactly the same, however a similar shape does emerge.  The two largest observation values have typicality values larger than in the batch method, where in this implementation they are regarded as typical.  The code is as follows:
 
@@ -537,7 +537,7 @@ When $m$ is set to $2$ however, we can see that none of the observations were ec
 plot_univariate_recursive_eccentricity(y,TRUE,FALSE,2016,2)
 ```
 
-## Evaluation
+## Evaluation Using Data with No Quality Labels
 
 A number of different observation types will be used in evaluating the behaviour of the recursive TEDA algorithm, including the raw observations, the observation deltas, and the windowed variance.  The data source of the observations is the Ecological Change Network (ECN) meteorology data (Rennie, S. et al. 2015).  The data contains observations from 1992 to 2012, however the subset of observations from 1998 to 2000 will be used initially.
 
@@ -656,6 +656,43 @@ generate_delta_teda_vect = function(observations){
   return(observations)
 }
 
+generate_sigma_teda_vect = function(observations,window_size){
+  
+  sd_vals = roll_sd(x=observations$value,
+                    n=window_size,
+                    by=1,
+                    align="center",
+                    na.rm=TRUE)
+  
+  edge_buffer = (window_size - 1) / 2
+  observations = observations[(1+edge_buffer):(dim(observations)[1]-edge_buffer)]
+  observations$sd_vals = sd_vals
+
+    # Generate the eccentricities
+  observation_sd_vals = data.frame(sd_vals)
+  colnames(observation_sd_vals) = c("value")
+  observation_sd_vals = evaluate_teda_vect(observation_sd_vals)
+  
+  # Augment the original data frame and return
+  observations$eccentricity = NA
+  observations$eccentricity[(1+edge_buffer):(dim(observations)[1]-edge_buffer)] =
+    observation_sd_vals$eccentricity
+  
+  observations$norm_eccentricity = NA
+  observations$norm_eccentricity[(1+edge_buffer):(dim(observations)[1]-edge_buffer)] =
+    observation_sd_vals$norm_eccentricity
+  
+  observations$threshold = NA
+  observations$threshold[(1+edge_buffer):(dim(observations)[1]-edge_buffer)] =
+    observation_sd_vals$threshold
+  
+  observations$outlier = NA
+  observations$outlier[(1+edge_buffer):(dim(observations)[1]-edge_buffer)] =
+    observation_sd_vals$outlier  
+  
+  return(observations)
+}
+
 ```
 
 #### Dry Bulb Temperature - Observations
@@ -706,7 +743,7 @@ ggplot(dry_temp) +
 
 ```
 
-Zooming in on the first group of observations marked as outliers, we can see that in the month of May, there were seven, one, and five days where the temperatures exceeded the eccentricity limit.
+Zooming in on the first group of observations marked as outliers, we can see that in the month of May, there were seven, two, and five days where the temperatures exceeded the eccentricity limit.
 
 ```{r evaluation-ecn-drybulb-teda-2}
 dry_temp_sub = dry_temp %>%
@@ -801,7 +838,7 @@ ggplot(delta_observations_sub) +
                       values = c("#000099",'#ffff66'))    
 ```
 
-Looking at the density plot we can see that the observation values associated with the deltas that exceed the eccentricity form a distribution with a median value greater than those whos deltas do not exceed the eccentricity.
+Looking at the density plot we can see that the observation values associated with the deltas that exceed the eccentricity form a distribution with a mean value greater than those whos deltas do not exceed the eccentricity.
 
 ```{r evaluation-ecn-drybulb-delta-eccentricity-distribution}
 
@@ -821,6 +858,8 @@ ggplot(delta_observations, aes(x=value)) +
 ```
 
 #### Dry Bulb Temperature - Sigma (variance)
+
+Todo.
 
 ```{r evaluation-ecn-drybulb-delta-2}
 
@@ -876,9 +915,7 @@ ggplot(delta_observations, aes(x=value)) +
 
 ## Findings
 
-Based on what the data around it is doing, but not taking anything else into consideration - dhr likely better by far.
-
-Also really looks like there are signals in the deltas (dry bulb) - auto-correlation.
+TODO: Need to generate test cases, identify existing data that has known anomalies.  Possibly look into the "ADAM" method paper which ran two models concurrently, one that included outliers in the recursive computation, one that did not, until the outliers became the new normal.
 
 # TEDA Clustering 
 
