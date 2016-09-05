@@ -293,7 +293,7 @@ generate_recursive_eccentricity = function(curr_obs, k, mu, X, sum_pi){
   #  to return eccentricities.
   if(k == 1){
     k_mu = curr_obs
-    k_X = abs(curr_obs)^2
+    k_X = curr_obs^2
     k_pi = 0
     k_ecc = 0
     k_sum_pi = 0
@@ -308,9 +308,9 @@ generate_recursive_eccentricity = function(curr_obs, k, mu, X, sum_pi){
     #  use the recursive definitions
     k_mu = (((k - 1) / k) * mu) + ((1 / k) * curr_obs)
     
-    k_X = (((k - 1) / k) * X) + ((1 / k) * (abs(curr_obs)^2))
+    k_X = (((k - 1) / k) * X) + ((1 / k) * (curr_obs^2))
     
-    k_pi = k * ((abs(curr_obs - k_mu)^2) + k_X - (abs(k_mu)^2))
+    k_pi = k * ((curr_obs - k_mu^2) + k_X - (k_mu^2))
     
     k_sum_pi = sum_pi + (2 * k_pi)
     
