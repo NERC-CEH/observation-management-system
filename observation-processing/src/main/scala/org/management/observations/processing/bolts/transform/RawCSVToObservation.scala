@@ -20,10 +20,10 @@ import com.redis.RedisClient
   */
 class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
 
-  @transient var redisCon: RedisClient = new RedisClient("localhost",6379)
+  @transient var redisCon: RedisClient = new RedisClient("10.0.0.3",6379)
 
   override def open(parameters: Configuration) = {
-    this.redisCon =  new RedisClient("localhost",6379)
+    this.redisCon =  new RedisClient("10.0.0.3",6379)
   }
 
   def map(in: String): RawObservation = {
