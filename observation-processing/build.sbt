@@ -15,12 +15,19 @@ scalaVersion := "2.11.8"
 /**
   * All Flink dependencies
   */
+/*libraryDependencies ++=  Seq("org.apache.flink" % "flink-streaming-scala_2.11" % "1.1.0"  % "provided",
+  "org.apache.flink" % "flink-connector-kafka-0.9_2.11" % "1.1.0",
+  "org.apache.flink" % "flink-streaming-contrib_2.11" % "1.1.0" % "provided",
+  "org.apache.flink" % "flink-test-utils_2.11" % "1.1.0"  % "provided",
+  "org.apache.flink" % "flink-test-utils-junit" % "1.1.0" % "provided",
+  "org.apache.flink" % "flink-connector-filesystem_2.11" % "1.1.0"  % "provided")*/
+
 libraryDependencies ++=  Seq("org.apache.flink" % "flink-streaming-scala_2.11" % "1.1.0" ,
   "org.apache.flink" % "flink-connector-kafka-0.9_2.11" % "1.1.0",
-  "org.apache.flink" % "flink-streaming-contrib_2.11" % "1.1.0",
-  "org.apache.flink" % "flink-test-utils_2.11" % "1.1.0" ,
-  "org.apache.flink" % "flink-test-utils-junit" % "1.1.0",
-  "org.apache.flink" % "flink-connector-filesystem_2.11" % "1.1.0" )
+  "org.apache.flink" % "flink-streaming-contrib_2.11" % "1.1.0" ,
+  "org.apache.flink" % "flink-test-utils_2.11" % "1.1.0"  ,
+  "org.apache.flink" % "flink-test-utils-junit" % "1.1.0" ,
+  "org.apache.flink" % "flink-connector-filesystem_2.11" % "1.1.0"  )
 
 
 /**
@@ -42,12 +49,9 @@ libraryDependencies ++= Seq(
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.6.1"
 
 /**
-  * Dependencies for unit testing, including the ScalaTest artifacts,
-  * but also the embedded Redis, Kafka, and Cassandra artifacts, to
-  * spin these up as necessary in the test code.
+  * Dependencies for unit testing
   */
-//libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.0"
-libraryDependencies += "com.github.kstyrc" % "embedded-redis" % "0.6"
+
 libraryDependencies += "junit" % "junit" % "4.10" % "test"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 

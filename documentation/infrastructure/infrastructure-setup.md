@@ -2,7 +2,7 @@
 
 ## Introduction
 
-All the software currently used is designed to support multi-machine deployment through clustering.  The only component setup in this way for this project is Cassandra.  Kafka, Redis, and Flink are setup as single node clusters at present.
+All the software currently used is designed to support multi-machine deployment through clustering.  The only component setup in this way for this project is Cassandra.  Kafka, Redis, and Flink are setup as single node/local clusters at present.
 
 ## Running on JASMIN Infrastructure
 
@@ -44,6 +44,7 @@ sudo fdisk /dev/sdb
 sudo apt-get install xfsprogs xfsdump
 sudo mkfs.xfs /dev/sdb1
 ```
+
 Once the disk has been formatted a mount point needs to be created and an entry added to the fstab:
 
 ```
@@ -88,10 +89,24 @@ sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 7000
 sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 7000
 
 # 7001: TLS intra-node communication
-# NA
+sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 7001
+sudo ufw allow from 192.168.3.4 to 192.168.3.2 port 7001
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.3 port 7001
+sudo ufw allow from 192.168.3.4 to 192.168.3.3 port 7001
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 7001
+sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 7001
 
 # 7199: JMX
-# NA
+sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 7199
+sudo ufw allow from 192.168.3.4 to 192.168.3.2 port 7199
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.3 port 7199
+sudo ufw allow from 192.168.3.4 to 192.168.3.3 port 7199
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 7199
+sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 7199
 
 # 9042: CQL
 sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 9042
@@ -104,17 +119,6 @@ sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 9042
 sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 9042
 
 ```
-
-While the following external port is to be opened up to allow connection from 
-```
-# 9042: CQL - this is used rather than the older 9160 (thrift service)
-# As this is an external IP, it is necessary to protect it, in this instance
-#  using a username and password combination
-sudo ufw allow from CEH_GROUP_IP to EXTERNAL_IP port REQUIRED_PORT
-```
-
-
-
 
 #### Installing Docker
 
@@ -132,8 +136,16 @@ echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" | sudo tee -a /
 sudo apt-get update
 sudo apt-get install linux-image-extra-$(uname -r)
 
-sudo apt-get install docker.io
+sudo apt-get install docker-engine
 ```
+
+It should be noted that while the containers that have persistent data such as Cassandra, Kafka, and Flink have their data directories mounted to the host using the `-v` flag, this data is ignored if the container is removed and re-instantiated.  The data continues to stay in the host folder, but it is not picked up by the container.  For example, with Kafka, create a number of topics, then remove and re-instantiate the container.  Try listing the topics, nothing will be returned, however if you browse to the host data directory, you will see the topic folders are still located there.
+
+TODO: 
+
+* Create Kafka 0.9 docker image
+* Create Flink docker image with state setup correctly
+   
 #### Cassandra
 
 The official image is used from:
@@ -163,26 +175,84 @@ When setting up the docker container there are a number of environment variables
 * CASSANDRA_ENDPOINT_SNITCH
     + The snitch used by the node, set to SimpleSnitch
 
+Because the flag `--net=host` is used, the port flags (e.g. -p 7000:7000 -p 9042:9042 -p 7199:7199 -p 7001:7001) are unnecessary as the ports are mapped directly to either the listen_host, 0.0.0.0, or the local 127.0.0.1 as applicable.
+
 ```
-docker run --name cassandra_node_one -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.2 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -p 7000:7000 -p 9042:9042 -v /cassandra:/var/lib/cassandra --net=host cassandra:3.7
+docker run --name cassandra_node_one -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.2 -e CASSANDRA_BROADCAST_ADDRESS=192.168.3.2 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -v /cassandra:/var/lib/cassandra --net=host cassandra:3.7
 
-docker run --name cassandra_node_two -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.3 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -p 7000:7000 -p 9042:9042 -v /cassandra:/var/lib/cassandra --net=host cassandra:3.7
+docker run --name cassandra_node_two -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.3 -e CASSANDRA_BROADCAST_ADDRESS=192.168.3.3 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -v /cassandra:/var/lib/cassandra --net=host cassandra:3.7
 
-docker run --name cassandra_node_three -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.4 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -p 7000:7000 -p 9042:9042 -v /cassandra:/var/lib/cassandra --net=host cassandra:3.7
+docker run --name cassandra_node_three -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.4 -e CASSANDRA_BROADCAST_ADDRESS=192.168.3.4 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -v /cassandra:/var/lib/cassandra --net=host cassandra:3.7
+```
 
+Connections from the local machine are made using ssh:
 
-docker run -it --link cassandra_node_one:cassandra --rm cassandra sh -c 'exec cqlsh "$CASSANDRA_PORT_9042_TCP_ADDR"'
-
+```
+ssh -L local_socket:host:hostport
+ssh -L 9042:127.0.0.1:9042 casone
+ssh -L 7199:127.0.0.1:7199 casone
 ```
 
 #### Kafka
 
-(The Docker file has been changed for the version?)
+```
+mkdir /kafka/kafka_logs
+mkdir /kafka/zookeeper_logs
 
-docker run --name kafka_ukleon -d -p 2181:2181 -p 9092:9092 --env ADVERTISED_HOST=192.171.183.108 --env ADVERTISED_PORT=9092 spotkaf
+docker run --name kafka_node_one -d --env ADVERTISED_HOST=192.168.3.5 --env ADVERTISED_PORT=9092 -v /kafka/kafka_logs:/tmp/kafka-logs -v /kafka/zookeeper_logs:/tmp/zookeeper --net=host spotify/kafka
+
+ssh -L 9092:127.0.0.1:9092 kafka
+ssh -L 2181:127.0.0.1:2181 kafka
+
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic raw-observations
+
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic raw-observations-malformed
+
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic observation-persist
+
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic observation-qc-logic
+
+```
+
+
+```
+sudo ufw allow from FLINK_HOST to KAFKA_HOST port 2181
+sudo ufw allow from FLINK_HOST to KAFKA_HOST port 9092
+```
 
 #### Redis
 
-docker run --name redis_registry -d -p 6379:6379 redis 
+```
+docker run --name redis_registry -d --net=host redis
+ssh -L 6379:127.0.0.1:6379 kafka
+
+sudo ufw allow from FLINK_HOST to KAFKA_HOST port 6379
+```
+
+With the redis example text file (having modified redis-mass.js `#!/usr/bin/env node` to `#!/usr/bin/env nodejs`
+
+
+```
+./redis-mass/lib/redis-mass.js PrimerData.txt | /usr/share/redis/src/redis-cli --pipe
+```
 
 #### Flink
+
+The docker image for Flink must be created from the repo.  Also, the `docker.io` package is not a release that can build the repo, and so it needs to be removed and the `docker-engine` installed.
+
+```
+sudo apt-get purge docker.io
+
+sudo apt-get install git docker-engine -y
+
+git clone https://github.com/apache/flink.git
+
+curl -L https://github.com/docker/compose/releases/download/1.8.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+
+chmod a+x /usr/local/bin/docker-compose
+chmod a+x ~/flink/flink-contrib/docker-flink/build.sh
+~/flink/flink-contrib/docker-flink/build.sh
+
+ssh -L 8081:127.0.0.1:8081 flink
+
+```
