@@ -1,0 +1,395 @@
+---
+title: "Weighted Moving Average Simple Forecast"
+author: "David B. Ciar"
+date: "22 July 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Introducation
+
+The following technique is taken from the Taylor et all paper.  Their premise is that by constructing a set of minimum and maximum values of recorded phenomena, variance, and null records over time, it is possible to sample from this to generate meaningful thresholds.  By example they construct such a set and sample from it, showing that for a number of phenomena, due to the CLT, we get a normal distribution of sampled values.  From this, they go on to use $\pm2\sigma$ as their limits on acceptable values for each given sampled point.  This however is a very time and resource comsuming task when dealing with multiple years of high-frequency timeseries data.  To negate this, they suggest applying exponential weights over the series, centered on the observation being sampled for.  I am not clear how they make this jump.
+
+```{r load_raw_data, cache = TRUE}
+library(data.table)
+library(lubridate)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(RcppRoll)
+library(forecast)
+
+# Data extracted using the following query for test purposes:
+#   select * from d1_sbas;
+
+# Raw Data Loading and Formatting
+# =============================================================================
+
+# Load the raw data
+observationData = read.table('~/Data/ObsProp_Examples/ecn_data.csv',
+                              sep = ',',
+                              header = FALSE)
+
+colnames(observationData) = c("site","sensorid","timestamp","value")
+
+# Remove those with a NA value or sensorid
+observationData <- observationData %>%
+  filter(!is.na(sensorid) & !is.na(value))
+
+# Create the timestamp + year + doy columns
+observationData$timestamp <- (observationData$timestamp/1000)+origin
+
+observationData$year <- year(observationData$timestamp)
+observationData$doy <- yday(observationData$timestamp)
+observationData$hour <- hour(observationData$timestamp)
+
+# Remove duplicate rows
+observationData <- observationData %>%
+  distinct()
+
+# Write to disk.
+write.table(observationData,
+            'observationDataTidy.csv',
+            append = TRUE,
+            sep = ',',
+            row.names = FALSE,
+            col.names = TRUE)
+
+```
+
+```{r create_sample_stats_func}
+
+# create_sample_stats
+# =============================================================================
+#
+# dataset:        The dataset to run the sample stat creation function over
+# column:         The column in the dataset to run the stat creation over
+# window_size:    The window size to calculate the stats over (min,max,sd)
+# step_distance:  The number of observations to step over and calculate 
+#                   the delta (acceleration)
+# statistic:      The statistic to calculate
+
+# Assumes the dataset is already in order, as simply traverses over current structure
+create_sample_stats <- function(dataset,
+                                column,
+                                window_size,
+                                step_distance,
+                                statistic){
+  
+  # Ensure the window size is uneven, so that there are an even number of observations
+  #  to either side of the current observation
+  if(window_size %% 2 == 0){
+    window_size <- window_size+1
+  }
+
+  # Create the half window offset size, used to define the start and end positions
+  #  within the dataset
+  window_offset <- (window_size-1)/2
+  dataset$window_size <- window_size      
+      
+  # Create the requested statistic, over the specified column.  The window offset
+  #  is used to make sure when adding the calculated values back to the dataset that
+  #  they are added in the rightpositions
+  if(statistic == "min"){
+    
+    min_vals <- roll_min(x=dataset[,get(column)],n=window_size,na.rm=TRUE)
+    dataset$min_val <- NA
+    dataset$min_val[(1+window_offset):(dim(dataset)[1]-window_offset)] <- min_vals
+    
+  }else if(statistic == "max"){
+    
+    max_vals <- roll_max(x=dataset[,get(column)],n=window_size,na.rm=TRUE)
+    dataset$max_val <- NA
+    dataset$max_val[(1+window_offset):(dim(dataset)[1]-window_offset)] <- max_vals
+    
+  }else if(statistic == "sd"){
+    
+    sd_vals <- roll_sd(x=dataset[,get(column)],n=window_size,na.rm=TRUE)
+    dataset$sd_val <- NA
+    dataset$sd_val[(1+window_offset):(dim(dataset)[1]-window_offset)] <- sd_vals
+    
+  }else if(statistic == "step"){
+    
+    step_vals <- sapply(1:(length(dataset[,get(column)])-step_distance),function(x){
+      dataset[,get(column)][x+step_distance] - dataset[,get(column)][x]  
+    })    
+    dataset$step_val <- NA
+    dataset$step_val[1:(length(dataset[,get(column)])-1)] <- step_vals
+  }
+    
+  return(dataset)
+}
+
+```
+
+
+```{r exp_weighted_avg}
+
+# create_forecast
+
+# This function, for every observation in the sequence to_forecast, subsets the dataset so 
+#   that it holds only those observations that fall within the hour and day window specified.
+
+# Applied to these observations are a series of weights exponentially declining from the 
+#   current observation being forecast.  These are calcuated separately as we wish them to be
+#   applied in a uniform way, and as there may be data points missing from the dataset, it is
+#   simpler to generate a complete sequence of weights and merge these to the actual data.
+#
+# ============================================================================================
+#
+# dataset: The dataset to run the forecast over
+# column: The column in the dataset to run the forecast over
+# to_forecast: The sequence of datetime values for which to forecast for from the provided dataset
+# window_size_hours: The window size in hours for which to take observations from 
+# window_size_days: The window size in days for which to take observations from
+
+create_forecast <- function(dataset,
+                            column,
+                            to_forecast,
+                            window_size_hours,
+                            window_size_days){
+
+  # For every observation within the sequence to_forecast, subset to only the observations required,
+  #   calculate the corresponding weight values, apply, and return the timestamp and forecast value
+  for(curr_point in to_forecast){
+
+    # Create a copy of the dataset for this processing    
+    sample_subset <- dataset
+    curr_point <- as.POSIXct(curr_point,origin = origin)
+        
+    # Filter the observations based on the day and hour windows
+    start_day <- yday(curr_point - days(window_size_days))
+    end_day <- yday(curr_point + days(window_size_days))
+    
+    start_hour <- hour(curr_point - hours(window_size_hours))
+    end_hour <- hour(curr_point + hours(window_size_hours))
+
+    if(start_day < end_day){
+      sample_subset <- sample_subset %>%
+        filter(doy > start_day &
+                 doy < end_day)
+    }else{
+      sample_subset <- sample_subset %>%
+        filter(doy > start_day |
+                 doy < end_day)
+    }    
+
+    if(start_hour < end_hour){
+      sample_subset <- sample_subset %>%
+        filter(shour > start_hour &
+                 shour < end_hour)    
+      
+    }else{
+      sample_subset <- sample_subset %>%
+        filter(shour > start_hour |
+                shour < end_hour)    
+    }      
+
+    if(dim(sample_subset)[1] > 1){
+     
+    # Create the sequence used to generate the value weightings, add it to a dataframe,
+    #  and create the timestamp column, which will be used to merge to the dataset.
+    # Arbitrary selection of start and end dates that we know encompass this demonstration
+    #  dataset, using the observation frequency.
+    weight_seq <- seq(from = ymd_hms("1990-01-01 00:00:00"),
+                      to = ymd_hms("2015-12-31 23:56:00"),
+                      by = "1 hour")
+    
+    weight_seq <- data.frame(weight_seq)
+    colnames(weight_seq) <- c("weight_pos")
+
+    # Weight is the final column to be calculated from multiplying the other three.  
+    weight_seq$weight <- NA
+    weight_seq$year_weight <- NA
+    weight_seq$day_weight <- NA
+    weight_seq$hour_weight <- NA
+    
+    #  Year_weight is for the weight given to observations by year, with weights descending
+    #  the further back in time from the forecast the observations go
+    weight_seq$year_weight <-   exp(-(abs(year(weight_seq$weight_pos)-(year(curr_point)-1))/
+                                 abs(min(dataset$year)-(year(curr_point))))^2)
+
+    #  Day_Weight is for the weight given to observations by day, where the weight descends on
+    #  both sides of the window from the current forecast observation.  As these weights are based
+    #  solely on the number of days distance from the forecast observation, the year is not important
+    #  as such, as it is the day of year distance that is being used.  However if the day window crosses
+    #  between years, then if the year is ignored the distance between two observations may be represented
+    #  much further than they are.  For example, the 31st of December is close to the 3rd of January over
+    #  consecutive years, and so this relationship needs to be stored, as shown by the setting of 
+    #  the year column below
+    weight_seq$year <- year(curr_point)
+
+    weight_seq$year[yday(weight_seq$weight_pos) > yday(curr_point-days(window_size_days)) &
+                      yday(curr_point) < yday(curr_point-days(window_size_days))] <- year(curr_point)-1
+    
+    weight_seq$year[yday(weight_seq$weight_pos) < yday(curr_point+days(window_size_days)) &
+                      yday(curr_point) > yday(curr_point+days(window_size_days))] <- year(curr_point)+1
+    
+    year(weight_seq$weight_pos) <- weight_seq$year
+    
+    weight_seq$day_weight <- exp(-(abs((interval(weight_seq$weight_pos, curr_point))/ddays(1))/
+                                 window_size_days)^2)
+      
+      
+    #  Hour_Weight is for the weight given to observations by their distance in hours from the 
+    #  forecast observation.  Similar to the Day_Weight, if a window crosses from one day to 
+    #  another, this relation ship needs to be kept to ensure the correct distances are used.
+
+    weight_seq$year <- year(curr_point)
+    weight_seq$day <- yday(curr_point)
+    
+    weight_seq$day[hour(weight_seq$weight_pos) > hour(curr_point-hours(window_size_hours)) &
+                      hour(curr_point) < hour(curr_point-hours(window_size_hours))] <- yday(curr_point)-1
+        
+    weight_seq$day[hour(weight_seq$weight_pos) < hour(curr_point+hours(window_size_hours)) &
+                      hour(curr_point) > hour(curr_point+hours(window_size_hours))] <- yday(curr_point)+1        
+      
+    year(weight_seq$weight_pos) <- weight_seq$year
+    yday(weight_seq$weight_pos) <- weight_seq$day
+    
+    weight_seq$hour_weight <- exp(-(abs((interval(weight_seq$weight_pos, curr_point))/dhours(1))/
+                                 window_size_hours)^2)
+      
+    # Subset the timeseries of weights, and merge with the sample_subset of values
+    weight_seq <- weight_seq %>%
+      select(weight_pos, weight)
+
+    sample_subset <- merge(sample_subset,
+          weight_seq,
+          by.x = c("timestamp"),
+          by.y = c("weight_pos"))
+    
+    # Calculate the weighted forecast value, and return this with the timestamp.
+    # TODO
+    
+    
+    c(curr_point,(sample_subset$year_weight*sample_subset$day_weight*sample_subset$hour_weight*sample_subset$value)/sum((sample_subset$year_weight*sample_subset$day_weight*sample_subset$hour_weight))) 
+    }
+
+  }
+
+}
+```
+
+
+```{r generate_sampling_statistics}
+
+# Generate the sampling data sets of min, max, variance, and delta values
+# =============================================================================
+
+# Read the tidied data into a data table
+tidyObservations <- fread('~/Documents/Git_Development/QCSystem/QC_Scripts/ExponentiallyWeightedWindow - Taylor and Loescher/Data/observationDataTidy.csv')
+
+tidyObservations$timestamp <- ymd_hms(tidyObservations$timestamp)
+tidyObservations$sdate <- ymd(tidyObservations$sdate)
+
+# Create the sequence for 2016 that will be forecast for
+forecast_year <- 2016
+tidyObservations <- tidyObservations %>%
+  filter(year(timestamp) < forecast_year)
+
+qc_series <- seq(from= dmy_hms(str_c('01/01/',forecast_year,' 00:00:00')),
+                 to= dmy_hms(str_c('31/12/',forecast_year,' 23:00:00')),
+                 by='30 min')
+
+# Generate a range of window sizes ranging from 1 hour to 12 hours.
+window_sizes_high <- c(15,30,45,60,90,120,180)
+
+# Generate a list of sensors to iterate over
+sensorList <- tidyObservations %>%
+  select(sensorid) %>% 
+  distinct()
+
+# Iterate over each sensor/window set and 
+for(currSensor in 1:length(sensorList$sensorid)){
+  print(str_c('Iteration: ',currSensor,' of: ',length(sensorList$sensorid)))
+  
+  sensorSubset <- tidyObservations %>%
+    filter(sensorid == sensorList$sensorid[currSensor]) %>%
+    select(timestamp, sdate, shour, smin, year, doy, sensorid, value)
+
+  for(i in 1:length(window_sizes_high)){
+    print("calculating minimum")    
+    min_stats <- create_sample_stats(data.table(sensorSubset),
+                                       'value',
+                                       window_sizes_high[i],
+                                       1,
+                                     "min")
+    print("calculating maximum")    
+    max_stats <- create_sample_stats(data.table(sensorSubset),
+                                   'value',
+                                   window_sizes_high[i],
+                                   1,
+                                 "max")
+    print("calculating sd")    
+    sd_stats <- create_sample_stats(data.table(sensorSubset),
+                                   'value',
+                                   window_sizes_high[i],
+                                   1,
+                                 "sd")
+    sampleStats <- merge(merge(min_stats,max_stats, by = c("timestamp","sdate","shour","smin","year","doy","sensorid","value")),
+                      sd_stats, by = c("timestamp","sdate","shour","smin","year","doy","sensorid","value"))
+    
+    # Write out the sample stats for future processing
+    if(i == 1){
+      write.table(sampleStats,
+                    str_c('~/Documents/Git_Development/QCSystem/QC_Scripts/ExponentiallyWeightedWindow - Taylor and Loescher/Data/Sensor_',sensorList$sensorid[currSensor],'_Sampling_Stats.csv'),
+                    append = TRUE,
+                    sep = ',',
+                    row.names = FALSE,
+                    col.names = TRUE)
+    }else{
+      write.table(sampleStats,
+                  str_c('~/Documents/Git_Development/QCSystem/QC_Scripts/ExponentiallyWeightedWindow - Taylor and Loescher/Data/Sensor_',sensorList$sensorid[currSensor],'_Sampling_Stats.csv'),
+                  append = TRUE,
+                  sep = ',',
+                  row.names = FALSE,
+                  col.names = FALSE)    
+    }
+  }    
+}
+
+```
+
+```{r create_forecasts}
+
+sampling_files <- list.files(path = "~/Documents/Git_Development/QCSystem/QC_Scripts/ExponentiallyWeightedWindow - Taylor and Loescher/Data/",
+                             pattern = "Sampling_Stats",
+                             full.names = TRUE)
+
+for(curr_file in sampling_files){
+  
+  # Read the current file
+  curr_dataset <- fread(curr_file)
+  
+  # For each column (min_val, max_val, sd_val) in the dataset with window_size, call create_forecast() with parameterised windows
+  window_sizes <- distinct(curr_dataset,window_size)$window_size
+  
+  for(curr_window in window_sizes){
+    dataset <- curr_dataset %>%
+      filter(window_size == curr_window)
+    
+    dataset$timestamp <- ymd_hms(dataset$timestamp)
+    dataset$sdate <- ymd(dataset$sdate)
+    
+    min_val <- create_forecast(dataset,
+                            "min_val",
+                            to_forecast[1],
+                            3,
+                            15)
+  
+  # Write to file based on curr_file id
+  }
+  
+}
+
+
+
+
+
+
+```
