@@ -49,17 +49,17 @@ Once the disk has been formatted a mount point needs to be created and an entry 
 
 ```
 # For Cassandra
-sudo mkdir /cassandra
+sudo mkdir /mnt/cassandra
 # For Kafka
-sudo mkdir /kafka
+sudo mkdir /mnt/kafka
 # For Redis
-sudo mkdir /redis
+sudo mkdir /mnt/redis
 
 # To retrieve the UUID for fstab
 sudo -i blkid
   
 # In fstab added the following
-UUID=output_of_above_goes_here /cassandra xfs  defaults,noatime,nobootwait  1   2
+UUID=output_of_above_goes_here /mnt/cassandra xfs  defaults,noatime,nobootwait  1   2
 ```
 
 
@@ -143,7 +143,6 @@ It should be noted that while the containers that have persistent data such as C
 
 TODO: 
 
-* Create Kafka 0.9 docker image
 * Create Flink docker image with state setup correctly
    
 #### Cassandra
@@ -196,10 +195,10 @@ ssh -L 7199:127.0.0.1:7199 casone
 #### Kafka
 
 ```
-mkdir /kafka/kafka_logs
-mkdir /kafka/zookeeper_logs
+mkdir /mnt/kafka/kafka_logs
+mkdir /mnt/kafka/zookeeper_logs
 
-docker run --name kafka_node_one -d --env ADVERTISED_HOST=192.168.3.5 --env ADVERTISED_PORT=9092 -v /kafka/kafka_logs:/tmp/kafka-logs -v /kafka/zookeeper_logs:/tmp/zookeeper --net=host spotify/kafka
+docker run --name kafka_node_one -d --env ADVERTISED_HOST=192.168.3.5 --env ADVERTISED_PORT=9092 -v /mnt/kafka/kafka_logs:/tmp/kafka-logs -v /mnt/kafka/zookeeper_logs:/tmp/zookeeper --net=host dbciar/docker-kafka
 
 ssh -L 9092:127.0.0.1:9092 kafka
 ssh -L 2181:127.0.0.1:2181 kafka
@@ -216,17 +215,18 @@ ssh -L 2181:127.0.0.1:2181 kafka
 
 
 ```
-sudo ufw allow from FLINK_HOST to KAFKA_HOST port 2181
-sudo ufw allow from FLINK_HOST to KAFKA_HOST port 9092
+sudo ufw allow from 192.168.3.6 to 192.168.3.5 port 2181
+sudo ufw allow from 192.168.3.6 to 192.168.3.5 port 9092
 ```
 
 #### Redis
 
 ```
 docker run --name redis_registry -d --net=host redis
+
 ssh -L 6379:127.0.0.1:6379 kafka
 
-sudo ufw allow from FLINK_HOST to KAFKA_HOST port 6379
+sudo ufw allow from 192.168.3.6 to 192.168.3.5 port 6379
 ```
 
 With the redis example text file (having modified redis-mass.js `#!/usr/bin/env node` to `#!/usr/bin/env nodejs`
@@ -238,21 +238,7 @@ With the redis example text file (having modified redis-mass.js `#!/usr/bin/env 
 
 #### Flink
 
-The docker image for Flink must be created from the repo.  Also, the `docker.io` package is not a release that can build the repo, and so it needs to be removed and the `docker-engine` installed.
-
-```
-sudo apt-get purge docker.io
-
-sudo apt-get install git docker-engine -y
-
-git clone https://github.com/apache/flink.git
-
-curl -L https://github.com/docker/compose/releases/download/1.8.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
-
-chmod a+x /usr/local/bin/docker-compose
-chmod a+x ~/flink/flink-contrib/docker-flink/build.sh
-~/flink/flink-contrib/docker-flink/build.sh
+TODO: dockerise the local execution or cluster, depending on setup.
 
 ssh -L 8081:127.0.0.1:8081 flink
 
-```

@@ -15,19 +15,19 @@ scalaVersion := "2.11.8"
 /**
   * All Flink dependencies
   */
-/*libraryDependencies ++=  Seq("org.apache.flink" % "flink-streaming-scala_2.11" % "1.1.0"  % "provided",
+libraryDependencies ++=  Seq("org.apache.flink" % "flink-streaming-scala_2.11" % "1.1.0"  % "provided",
   "org.apache.flink" % "flink-connector-kafka-0.9_2.11" % "1.1.0",
   "org.apache.flink" % "flink-streaming-contrib_2.11" % "1.1.0" % "provided",
   "org.apache.flink" % "flink-test-utils_2.11" % "1.1.0"  % "provided",
   "org.apache.flink" % "flink-test-utils-junit" % "1.1.0" % "provided",
-  "org.apache.flink" % "flink-connector-filesystem_2.11" % "1.1.0"  % "provided")*/
+  "org.apache.flink" % "flink-connector-filesystem_2.11" % "1.1.0"  % "provided")
 
-libraryDependencies ++=  Seq("org.apache.flink" % "flink-streaming-scala_2.11" % "1.1.0" ,
+/*libraryDependencies ++=  Seq("org.apache.flink" % "flink-streaming-scala_2.11" % "1.1.0" ,
   "org.apache.flink" % "flink-connector-kafka-0.9_2.11" % "1.1.0",
   "org.apache.flink" % "flink-streaming-contrib_2.11" % "1.1.0" ,
   "org.apache.flink" % "flink-test-utils_2.11" % "1.1.0"  ,
   "org.apache.flink" % "flink-test-utils-junit" % "1.1.0" ,
-  "org.apache.flink" % "flink-connector-filesystem_2.11" % "1.1.0"  )
+  "org.apache.flink" % "flink-connector-filesystem_2.11" % "1.1.0"  )*/
 
 
 /**

@@ -6,7 +6,7 @@ package org.management.observations.processing.tuples
   *   - MetaOutcomeQualitative
   *   - MetaOutcomeQuantitative
   *   - RawObservation
-  *   - SemanticObservationNumeric
+  *   - SemanticObservation
   *   - QCOutcomeQualitative
   *   - QCOutcomeQuantitative
   *

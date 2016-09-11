@@ -2,6 +2,7 @@ package org.management.observations.processing.bolts.transform
 
 // The function being extended
 import org.apache.flink.api.common.functions.RichMapFunction
+import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.configuration.Configuration
 
 // The tuples used within this bolt
@@ -20,10 +21,11 @@ import com.redis.RedisClient
   */
 class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
 
-  @transient var redisCon: RedisClient = new RedisClient("10.0.0.3",6379)
+  @transient var redisCon =  new RedisClient("192.168.3.5",6379)
+
 
   override def open(parameters: Configuration) = {
-    this.redisCon =  new RedisClient("10.0.0.3",6379)
+    this.redisCon =  new RedisClient("192.168.3.5",6379)
   }
 
   def map(in: String): RawObservation = {
