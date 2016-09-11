@@ -1,0 +1,120 @@
+---
+title: "Basic Registry Implementation"
+author: "David B. Ciar"
+date: "6 September 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(data.table)
+library(dplyr)
+library(stringr)
+library(bit64)
+library(lubridate)
+
+options(scipen=999)
+
+ecn_data = fread('~/Data/ECN_SWE_Data/Data/T04_MoorHouse_UpperTeesdale.csv')
+colnames(ecn_data) = tolower(colnames(ecn_data))
+
+```
+
+The following document is used to create a basic registry setup to allow for testing with sensor data, before the linked data infrastructure has been created.  The data used can be downloaded from the DOI's in the references section.
+
+# ECN Data
+
+## Create Feature/Procedure/ObservableProperty Entries
+
+```{r ecn-create-features}
+
+site_sensor = ecn_data %>%
+  select(sitecode, fieldname) %>%
+  distinct()
+
+site_sensor$feature_uri = str_c("http://placeholder.catalogue.ceh.ac.uk/example/",site_sensor$sitecode,"/info")
+
+site_sensor$procedure_uri = str_c("http://placeholder.catalogue.ceh.ac.uk/example/",site_sensor$sitecode,"/",site_sensor$fieldname,"/info")
+
+site_sensor$obsprop_uri = str_c("http://placeholder.catalogue.ceh.ac.uk/example/",site_sensor$sitecode,"/",site_sensor$fieldname,"/example_property/info")
+
+site_sensor$registry_features = str_c(site_sensor$sitecode,
+                                   '::',
+                                   site_sensor$fieldname,
+                                   '::feature ',
+                                   site_sensor$feature_uri)
+
+site_sensor$registry_procedures = str_c(site_sensor$sitecode,
+                                   '::',
+                                   site_sensor$fieldname,
+                                   '::procedure ',
+                                   site_sensor$procedure_uri)
+
+site_sensor$registry_obsprop = str_c(site_sensor$sitecode,
+                                   '::',
+                                   site_sensor$fieldname,
+                                   '::observableproperty ',
+                                   site_sensor$obsprop_uri)
+```
+
+The feature entries are as follows:
+
+```{r ecn-print-features}
+cat(site_sensor$registry_features,sep='\n')
+```
+
+The procedure entries are as follows:
+
+```{r ecn-print-procedures}
+cat(site_sensor$registry_procedures,sep='\n')
+```
+
+The observable property entries are as follows:
+
+```{r ecn-print-obsprop}
+cat(site_sensor$registry_obsprop,sep='\n')
+```
+## Create Feature/Platform Checks
+
+```{r }
+sites = site_sensor %>%
+  select(sitecode) %>%
+  distinct()
+
+site_identity = str_c(sites,
+                      '::meta::identity ',
+                      'http://definition.uri/notcleaned::http://definition.uri/maintenance')
+
+```
+
+LEVE::meta::identity notcleaned::maintenance
+
+LEVE::meta::identity::notcleaned feat,proc,obsprop::feat,proc,,obsprop::feat,proc,obsprop
+LEVE::meta::identity::maintenance feat,proc,obsprop::feat,proc,obsprop::feat,proc,obsprop
+
+## Create Range/Delta/Sigma Checks
+
+
+## Create the Observations
+
+```{r ecn-create-observation-file}
+
+ecn_data$timestamp = ymd_hms(ecn_data$sdate)
+hour(ecn_data$timestamp) = ecn_data$shour
+
+ecn_data = ecn_data %>%
+  select(sitecode,fieldname,timestamp,value) %>%
+  mutate(timestamp = as.integer(timestamp)*1000)
+
+write.table(ecn_data, '~/Data/ObsProp_Examples/ecn_data.csv',
+            sep = ',',
+            col.names = FALSE,
+            row.names = FALSE)
+```
+
+# References
+
+Rennie, S.; Adamson, J.; Anderson, R.; Andrews, C.; Bater, J.; Bayfield, N.; Beaton, K.; Beaumont, D.; Benham, S.; Bowmaker, V.; Britt, C.; Brooker, R.; Brooks, D.; Brunt, J.; Common, G.; Cooper, R.; Corbett, S.; Critchley, N.; Dennis, P.; Dick, J.; Dodd, B.; Dodd, N.; Donovan, N.; Easter, J.; Eaton, E.; Flexen, M.; Gardiner, A.; Hamilton, D.; Hargreaves, P.; Hatton-Ellis, M.; Howe, M.; Kahl, J.; Lane, M.; Langan, S.; Lloyd, D.; McElarney, Y.; McKenna, C.; McMillan, S.; Milne, F.; Milne, L.; Morecroft, M.; Murphy, M.; Nelson, A.; Nicholson, H.; Pallett, D.; Parry, D.; Pearce, I.; Pozsgai, G.; Rose, R.; Schafer, S.; Scott, T.; Sherrin, L.; Shortall, C.; Smith, R.; Smith, P.; Tait, R.; Taylor, C.; Taylor, M.; Thurlow, M.; Turner, A.; Tyson, K.; Watson, H.; Whittaker, M.; Wilkinson, M. (2015). UK Environmental Change Network (ECN) meteorology data: 1992-2012. NERC Environmental Information Data Centre. http://doi.org/10.5285/e1d33b37-f1d4-4234-a0d5-8bf4e657f653
+
+ECN Site Data https://catalogue.ceh.ac.uk/id/b1540d75-bbec-4181-902f-f0b43eeee359 
