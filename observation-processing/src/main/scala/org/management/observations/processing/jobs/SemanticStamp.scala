@@ -86,7 +86,7 @@ object SemanticStamp{
 
     val semanticStream: DataStream[SemanticObservation] = rawStream
       .filter(_.parseOK == true)
-      .filter(_.observationType == "Numerical")
+      .filter(_.observationType == "numeric")
       .map(new RawToSemanticObservation())
 
     semanticStream

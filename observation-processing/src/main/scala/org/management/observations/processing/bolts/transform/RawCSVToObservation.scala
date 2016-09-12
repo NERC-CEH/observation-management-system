@@ -36,7 +36,7 @@ class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
       * - Does the observation have the correct number of fields,
       *   and a value
       * - Does the observation have a millisecond timestamp
-      * - Does the value conform to the numeric or categorical type
+      * - Does the value conform to the type held in the registry
       * - Does the observation metadata have corresponding match
       *   in the registry
       */
@@ -59,18 +59,6 @@ class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
         case e: Exception => false
       }
 
-      // Does the value conform to a numeric or categorical representation
-      val numericValue: Boolean = {
-        if (in.split(",")(3) == "NotAValue") true
-        else {
-          try {
-            in.split(",")(3).toDouble; true
-          } catch {
-            case e: Exception => false
-          }
-        }
-      }
-
       /**
         * Is the metadata in the registry? Create var's as we want to use
         * the registry values later if they match.
@@ -88,40 +76,72 @@ class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
         case e: Exception => None
       }
 
-      val observableproperty: Option[String] = try{
+      val observableProperty: Option[String] = try{
         this.redisCon.get(lookupKey + "::observableproperty")
       }catch {
         case e: Exception => None
       }
 
+      val observationType: Option[String] = try{
+        this.redisCon.get(lookupKey + "::observationtype")
+      }catch {
+        case e: Exception => None
+      }
+
       val registryOK: Boolean = {
-        if (feature.isEmpty || procedure.isEmpty || observableproperty.isEmpty) false
+        if (feature.isEmpty || procedure.isEmpty || observableProperty.isEmpty || observationType.isEmpty) false
         else true
+      }
+
+      /**
+        * Does the value conform to the registry held type?  "NotAValue" is
+        * checked for first as this conforms to all types, if not, then
+        * values parsed as expected.  Category, as a string, does not have
+        * checks at present, future work will point it towards a list of
+        * acceptable values.
+        */
+      val typeOK: Boolean = {
+        if(observationType.isDefined){
+          if(in.split(",")(3) == "NotAValue"){
+            true
+          }else if(observationType == "numeric"  || observationType == "count"){
+            try {
+              in.split(",")(3).toDouble; true
+            } catch {
+              case e: Exception => false
+            }
+          }else if(observationType == "category"){
+            true
+          }else{
+            false
+          }
+        }else{
+          false
+        }
       }
 
       /**
         * Use the outcome of the above tests to generate the RawObservation
         * output objects.
         */
-      val dataType: String = if(numericValue) "Numerical" else "Categorical"
-
-      val parseOK: Boolean = correctValueSize && timeMilli && registryOK
+      val parseOK: Boolean = correctValueSize && timeMilli && registryOK && typeOK
 
       val parseMessage: String = {
         if(!correctValueSize) "Malformed observation tuple."
         else if(!registryOK) "Registry lookup failed."
         else if(!timeMilli) "Incorrect time representation."
+        else if(!typeOK) "Observation type from registry not matched."
         else "Parsed OK."
       }
 
       val currObs: String = {
-        if (parseOK) feature.get + "," + procedure.get + "," + observableproperty.get + "," + in.split(",")(2)+","+in.split(",")(3)
+        if (parseOK) feature.get + "," + procedure.get + "," + observableProperty.get + "," + in.split(",")(2)+","+in.split(",")(3)
         else in
       }
 
       new RawObservation(
         currObs,
-        dataType,
+        observationType.get,
         parseOK,
         parseMessage
       )

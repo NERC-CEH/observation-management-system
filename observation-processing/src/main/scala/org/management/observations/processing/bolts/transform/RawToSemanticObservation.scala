@@ -43,7 +43,7 @@ class RawToSemanticObservation extends MapFunction[RawObservation, SemanticObser
 
     // Create the entry for the numeric observation
     val numericValue: Option[Double] = {
-      if(in.observationType == "Numerical") {
+      if(in.observationType == "numeric" || in.observationType == "count") {
         if (currObservation(4) == "NotAValue")
           None
         else
@@ -55,7 +55,7 @@ class RawToSemanticObservation extends MapFunction[RawObservation, SemanticObser
 
     // Create the entry for the categorical observation
     val categoricValue: Option[String] = {
-      if(in.observationType == "Categorical") {
+      if(in.observationType == "category") {
         Some(currObservation(4))
       }else{
         None
