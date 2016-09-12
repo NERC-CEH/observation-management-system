@@ -3,7 +3,6 @@ package org.management.observations.processing.jobs
 // Execution environment
 import org.apache.flink.api.common.ExecutionConfig
 import org.apache.flink.api.java.utils.ParameterTool
-import org.management.observations.processing.tuples.{RawObservation, SemanticObservation}
 
 // Used to provide serializer/deserializer information for user defined objects
 // to place onto the Kafka queue
@@ -18,13 +17,15 @@ import org.apache.flink.streaming.api.scala._
 // Kafka connection for source and sink
 import org.apache.flink.streaming.connectors.kafka._
 
-
 // The tuple types used within this job, and the bolts used to convert from the
 // raw CSV format to a RawObservation, and from RawObservation to SemanticObservationNumeric
 import org.management.observations.processing.bolts.transform._
+import org.management.observations.processing.tuples.{RawObservation, SemanticObservation}
 
 // System KVP properties and time representations
 import java.util.Properties
+import org.management.observations.processing.ProjectConfiguration
+import scala.collection.JavaConversions._
 
 /**
   * SemanticStamp:
@@ -40,7 +41,6 @@ import java.util.Properties
   *
   * - pipe observations that fail to parse into a queue for manual evaluation
   *
-  * todo: The persistence queues are placeholders, waiting for Cassandra sink capabilities
   */
 
 object SemanticStamp{
@@ -50,11 +50,12 @@ object SemanticStamp{
     // Create the environment
     val env = StreamExecutionEnvironment.getExecutionEnvironment
 
+    // Read the parameter configuration file
+    val params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+
     // Generate the properties for the kafka connections
     val kafkaProp = new Properties()
-    kafkaProp.setProperty("bootstrap.servers", "192.168.3.5:9092");
-//    kafkaProp.setProperty("zookeeper.connect", "127.0.0.1:2181");
-//    kafkaProp.setProperty("group.id", "SemanticStamp");
+    kafkaProp.setProperty("bootstrap.servers", params.get("kafka-bootstrap"));
 
     /**
       * Basic read/write observation stream:
@@ -63,7 +64,11 @@ object SemanticStamp{
       * then use a map function to produce a stream of RawObservation objects
       */
     val rawStream: DataStream[RawObservation] = env
-      .addSource(new FlinkKafkaConsumer09[String]("raw-observations", new SimpleStringSchema(), kafkaProp))
+      .addSource(new FlinkKafkaConsumer09[String](
+        params.get("kafka-ingest-raw-observations"),
+        new SimpleStringSchema(),
+        kafkaProp)
+      )
       .map(new RawCSVToObservation())
 
     /**
@@ -75,7 +80,11 @@ object SemanticStamp{
 
     rawStream
     .filter(_.parseOK == false)
-    .addSink(new FlinkKafkaProducer09[RawObservation]("192.168.3.5:9092", "raw-observations-malformed", rawTypeSchema))
+    .addSink(new FlinkKafkaProducer09[RawObservation](
+      params.get("kafka-producer"),
+      params.get("kafka-produce-malformed-raw-observations"),
+      rawTypeSchema)
+    )
 
     /**
       * Convert RawObservations to SemanticObservations, and write to the
@@ -90,13 +99,21 @@ object SemanticStamp{
       .map(new RawToSemanticObservation())
 
     semanticStream
-      .addSink(new FlinkKafkaProducer09[SemanticObservation]("192.168.3.5:9092", "observation-persist", semanticTypeSchema))
+      .addSink(new FlinkKafkaProducer09[SemanticObservation](
+        params.get("kafka-producer"),
+        params.get("kafka-produce-observation-persist"),
+        semanticTypeSchema)
+      )
 
     /**
       * Write the RawObservation to the QC Logic job that processes all observation data
       */
     semanticStream
-      .addSink(new FlinkKafkaProducer09[SemanticObservation]("192.168.3.5:9092", "observation-qc-logic", semanticTypeSchema))
+      .addSink(new FlinkKafkaProducer09[SemanticObservation](
+        params.get("kafka-producer"),
+        params.get("kafka-produce-qc-logic-queue"),
+        semanticTypeSchema)
+      )
 
     env.execute("Observation Semantic Stamp")
   }

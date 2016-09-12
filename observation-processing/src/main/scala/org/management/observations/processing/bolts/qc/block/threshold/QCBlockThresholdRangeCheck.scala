@@ -1,10 +1,10 @@
 package org.management.observations.processing.bolts.qc.block.threshold
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
+import org.apache.flink.api.java.utils.ParameterTool
 
 // The function being extended and collecting output
 import org.apache.flink.api.common.functions.RichFlatMapFunction
-import org.apache.flink.util.Collector
 
 // Used for passing parameters to the open() function
 import org.apache.flink.configuration.Configuration
@@ -18,6 +18,10 @@ import org.apache.flink.util.Collector
 
 // The tuples used within this bolt
 import org.management.observations.processing.tuples.{QCOutcomeQuantitative, SemanticObservation, SemanticObservationFlow}
+
+// System KVP properties
+import org.management.observations.processing.ProjectConfiguration
+import scala.collection.JavaConversions._
 
 /**
   * QCBlockThresholdRangeCheck
@@ -38,11 +42,12 @@ import org.management.observations.processing.tuples.{QCOutcomeQuantitative, Sem
   */
 class QCBlockThresholdRangeCheck extends RichFlatMapFunction[SemanticObservation,QCOutcomeQuantitative] with SemanticObservationFlow{
 
-  // Create the connection to the registry
-  @transient var redisCon: RedisClient = new RedisClient("localhost", 6379)
+  @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+  @transient var redisCon: RedisClient = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
 
   override def open(parameters: Configuration) = {
-    this.redisCon = new RedisClient("localhost", 6379)
+    this.params = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+    this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
   def flatMap(obs: SemanticObservation, out: Collector[QCOutcomeQuantitative]): Unit = {

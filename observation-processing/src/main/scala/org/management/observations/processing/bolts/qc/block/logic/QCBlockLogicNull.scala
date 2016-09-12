@@ -16,12 +16,12 @@ class QCBlockLogicNull extends MapFunction[SemanticObservation, QCOutcomeQualita
 
   def map(in: SemanticObservation): QCOutcomeQualitative = {
 
-    if(in.observationType == "Numerical" && in.numericalObservation.isEmpty){
+    if((in.observationType == "numeric" || in.observationType == "count") && in.numericalObservation.isEmpty){
       createQCOutcomeQualitative(in,
         "http://placeholder.catalogue.ceh.ac.uk/qc/null/value",
         "fail"
       )
-    }else if(in.observationType == "Categorical" && in.categoricalObservation.isEmpty){
+    }else if(in.observationType == "category" && in.categoricalObservation.isEmpty){
       createQCOutcomeQualitative(in,
         "http://placeholder.catalogue.ceh.ac.uk/qc/null/value",
         "fail"

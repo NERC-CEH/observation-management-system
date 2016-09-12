@@ -2,6 +2,7 @@ package org.management.observations.processing.bolts.qc.block.threshold
 
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
+import org.apache.flink.api.java.utils.ParameterTool
 
 // The function being extended and related
 import org.apache.flink.streaming.api.scala.function.RichWindowFunction
@@ -23,6 +24,10 @@ import java.time.{LocalDateTime, ZoneOffset}
 
 // Used to calculate variance
 import org.apache.commons.math.stat.descriptive.SummaryStatistics
+
+// System KVP properties
+import org.management.observations.processing.ProjectConfiguration
+import scala.collection.JavaConversions._
 
 /**
   * QCBlockThresholdSigmaCheck
@@ -47,11 +52,12 @@ import org.apache.commons.math.stat.descriptive.SummaryStatistics
   */
 class QCBlockThresholdSigmaCheck extends RichWindowFunction[SemanticObservation, QCOutcomeQuantitative, Tuple, TimeWindow] with SemanticObservationFlow{
 
-  // Create the connection to the registry
-  @transient var redisCon: RedisClient = new RedisClient("localhost", 6379)
+  @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+  @transient var redisCon: RedisClient = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
 
   override def open(parameters: Configuration) = {
-    this.redisCon = new RedisClient("localhost", 6379)
+    this.params = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+    this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
   def apply(key: Tuple, window: TimeWindow, input: Iterable[SemanticObservation], out: Collector[QCOutcomeQuantitative]): Unit = {

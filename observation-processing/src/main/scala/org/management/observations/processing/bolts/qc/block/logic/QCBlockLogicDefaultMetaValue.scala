@@ -2,6 +2,7 @@ package org.management.observations.processing.bolts.qc.block.logic
 
 // For connection to registry
 import com.redis.RedisClient
+import org.apache.flink.api.java.utils.ParameterTool
 
 // Function being extended
 import org.apache.flink.api.common.functions.RichFlatMapFunction
@@ -15,6 +16,10 @@ import org.apache.flink.util.Collector
 // Import the tuples
 import org.management.observations.processing.tuples._
 
+// System KVP properties
+import org.management.observations.processing.ProjectConfiguration
+import scala.collection.JavaConversions._
+
 /**
   * QCBlockLogicDefaultMetaValue
   *
@@ -23,11 +28,13 @@ import org.management.observations.processing.tuples._
   */
 class QCBlockLogicDefaultMetaValue extends RichFlatMapFunction[SemanticObservation, QCOutcomeQuantitative] with SemanticObservationFlow{
 
+  @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
   // Create the connection to the registry
-  @transient var redisCon: RedisClient = new RedisClient("localhost", 6379)
+  @transient var redisCon: RedisClient = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
 
   override def open(parameters: Configuration) = {
-    this.redisCon = new RedisClient("localhost", 6379)
+    this.params = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+    this.redisCon = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
   def flatMap(in: SemanticObservation, out: Collector[QCOutcomeQuantitative]): Unit = {

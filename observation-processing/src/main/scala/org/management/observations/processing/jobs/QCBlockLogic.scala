@@ -2,7 +2,7 @@ package org.management.observations.processing.jobs
 
 // Execution environment
 import org.apache.flink.api.common.ExecutionConfig
-
+import org.apache.flink.api.java.utils.ParameterTool
 
 // Used to provide serializer/deserializer information for user defined objects
 // to place onto the Kafka queue
@@ -26,6 +26,8 @@ import org.management.observations.processing.bolts.qc.block.logic._
 
 // System KVP properties and time representations
 import java.util.Properties
+import org.management.observations.processing.ProjectConfiguration
+import scala.collection.JavaConversions._
 
 /**
   * QCBlockLogic
@@ -51,22 +53,28 @@ object QCBlockLogic extends SemanticObservationFlow{
       */
     val env = StreamExecutionEnvironment.getExecutionEnvironment
 
-    /**
-      * Generate the properties for the kafka connections, this includes creating the schema
-      * val, used to deserialize the SemanticObservationNumeric objects from the Kafka queue
-      */
-    val kafkaProp = new Properties()
-    kafkaProp.setProperty("bootstrap.servers", "localhost:9092");
-    kafkaProp.setProperty("zookeeper.connect", "localhost:2181");
-    kafkaProp.setProperty("group.id", "QCBlockLogic");
+    // Read the parameter configuration file
+    val params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
 
+    // Generate the properties for the kafka connections
+    val kafkaProp = new Properties()
+    kafkaProp.setProperty("bootstrap.servers", params.get("kafka-bootstrap"));
+
+    /**
+      * Generate the deserializer information to read SemanticObservation objects
+      * from the Kafka queue
+      */
     val semanticType: TypeInformation[SemanticObservation] = TypeExtractor.createTypeInfo(classOf[SemanticObservation])
     val semanticTypeSchema = new TypeInformationSerializationSchema[SemanticObservation](semanticType, new ExecutionConfig())
 
 
     // Connect to the observation queue, read the SemanticObservationNumeric objects into observationStream
     val observationStream: DataStream[SemanticObservation] = env
-      .addSource(new FlinkKafkaConsumer09[SemanticObservation]("observation-qc-logic", semanticTypeSchema, kafkaProp))
+      .addSource(new FlinkKafkaConsumer09[SemanticObservation](
+        params.get("kafka-ingest-qc-logic-queue"),
+        semanticTypeSchema,
+        kafkaProp)
+      )
 
     /**
       * Null QC Check
@@ -83,7 +91,11 @@ object QCBlockLogic extends SemanticObservationFlow{
       .map(new QCBlockLogicNull())
 
     nullQC
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQualitative]("localhost:9092", "qualitative-persist", qualitativeTypeSchema))
+      .addSink(new FlinkKafkaProducer09[QCOutcomeQualitative](
+        params.get("kafka-producer"),
+        params.get("kafka-produce-qc-qualitative"),
+        qualitativeTypeSchema)
+      )
 
     /**
       * Time Order + Spacing event stream:
@@ -102,7 +114,11 @@ object QCBlockLogic extends SemanticObservationFlow{
     val quantitativeTypeSchema = new TypeInformationSerializationSchema[QCOutcomeQuantitative](quantitativeType, new ExecutionConfig())
 
     timeQC
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative]("localhost:9092", "quantitative-persist", quantitativeTypeSchema))
+      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative](
+        params.get("kafka-producer"),
+        params.get("kafka-produce-qc-quantitative"),
+        quantitativeTypeSchema)
+      )
 
     /**
       * Default metadata based outcomes:
@@ -121,10 +137,18 @@ object QCBlockLogic extends SemanticObservationFlow{
       .flatMap(new QCBlockLogicDefaultMetaValue())
 
     identityMetaStream
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQualitative]("localhost:9092", "qualitative-persist", qualitativeTypeSchema))
+      .addSink(new FlinkKafkaProducer09[QCOutcomeQualitative](
+        params.get("kafka-producer"),
+        params.get("kafka-produce-qc-qualitative"),
+        qualitativeTypeSchema)
+      )
 
     valueMetaStream
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative]("localhost:9092", "quantitative-persist", quantitativeTypeSchema))
+      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative](
+        params.get("kafka-producer"),
+        params.get("kafka-produce-qc-quantitative"),
+        quantitativeTypeSchema)
+      )
 
     /**
       * Send all the observations that have a value to QC Block Threshold,
@@ -135,7 +159,11 @@ object QCBlockLogic extends SemanticObservationFlow{
       */
     observationStream
       .filter(_.numericalObservation.isDefined)
-      .addSink(new FlinkKafkaProducer09[SemanticObservation]("localhost:9092", "observation-qc-threshold", semanticTypeSchema))
+      .addSink(new FlinkKafkaProducer09[SemanticObservation](
+        params.get("kafka-producer"),
+        params.get("kafka-produce-qc-threshold"),
+        semanticTypeSchema)
+      )
 
     env.execute("QC Block Logic")
   }

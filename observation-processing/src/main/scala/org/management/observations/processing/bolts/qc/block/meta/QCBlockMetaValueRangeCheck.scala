@@ -4,6 +4,8 @@ package org.management.observations.processing.bolts.qc.block.meta
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, ZoneOffset}
 
+import org.apache.flink.api.java.utils.ParameterTool
+
 // Used to connect to the registry
 import com.redis.RedisClient
 
@@ -18,6 +20,10 @@ import org.apache.flink.util.Collector
 
 // The tuples used in this bolt
 import org.management.observations.processing.tuples.{MetaDataObservation, MetaOutcomeQuantitative}
+
+// System KVP properties
+import org.management.observations.processing.ProjectConfiguration
+import scala.collection.JavaConversions._
 
 /**
   * QCBlockMetaValueRangeCheck
@@ -40,11 +46,12 @@ import org.management.observations.processing.tuples.{MetaDataObservation, MetaO
   */
 class QCBlockMetaValueRangeCheck extends RichFlatMapFunction[MetaDataObservation, MetaOutcomeQuantitative] {
 
-  // Create the connection to the registry
-  @transient var redisCon: RedisClient = new RedisClient("localhost", 6379)
+  @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+  @transient var redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
 
   override def open(parameters: Configuration) = {
-    this.redisCon = new RedisClient("localhost", 6379)
+    this.params = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+    this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
   def flatMap(in: MetaDataObservation, out: Collector[MetaOutcomeQuantitative]): Unit = {

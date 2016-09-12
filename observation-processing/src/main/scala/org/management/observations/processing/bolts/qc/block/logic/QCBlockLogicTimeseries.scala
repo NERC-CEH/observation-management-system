@@ -2,6 +2,7 @@ package org.management.observations.processing.bolts.qc.block.logic
 
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
+import org.apache.flink.api.java.utils.ParameterTool
 
 // Allows the use of the state variables
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
@@ -27,6 +28,10 @@ import org.management.observations.processing.tuples.{QCOutcomeQuantitative, Sem
 // Used for returning the absolute value
 import java.lang.Math.abs
 
+// System KVP properties
+import org.management.observations.processing.ProjectConfiguration
+import scala.collection.JavaConversions._
+
 /**
   * QCBlockLogicTimeseries
   *
@@ -48,11 +53,14 @@ class QCBlockLogicTimeseries extends RichWindowFunction[SemanticObservation, QCO
   // Register the state and redis connection variables, where
   // the state variable holds only the last observation's timestamp
   var state: ValueState[Tuple1[Long]] = null
-  @transient var redisCon: RedisClient = new RedisClient("localhost", 6379)
+
+  @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+  @transient var redisCon: RedisClient = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
 
 
   override def open(parameters: Configuration) = {
-    this.redisCon = new RedisClient("localhost", 6379)
+    this.params = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+    this.redisCon = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
 
     state = getRuntimeContext.getState(new ValueStateDescriptor("QCTimestampVerification",classOf[Tuple1[Long]],null))
   }

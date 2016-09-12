@@ -13,6 +13,7 @@ import org.apache.flink.api.common.functions.MapFunction
 import org.management.observations.processing.tuples.RawObservation
 import org.management.observations.processing.tuples.SemanticObservation
 
+
 /**
   * RawToSemanticObservation
   *

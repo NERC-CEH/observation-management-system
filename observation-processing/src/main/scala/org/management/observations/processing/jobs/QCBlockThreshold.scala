@@ -2,7 +2,7 @@ package org.management.observations.processing.jobs
 
 // Execution environment
 import org.apache.flink.api.common.ExecutionConfig
-import org.management.observations.processing.tuples.SemanticObservation
+import org.apache.flink.api.java.utils.ParameterTool
 
 // Used to provide serializer/deserializer information for user defined objects
 // to place onto the Kafka queue
@@ -23,12 +23,15 @@ import org.apache.flink.streaming.connectors.kafka._
 
 // The tuple types used within this job
 import org.management.observations.processing.tuples.QCOutcomeQuantitative
+import org.management.observations.processing.tuples.SemanticObservation
 
 // The range, sigma, and delta check bolts
 import org.management.observations.processing.bolts.qc.block.threshold._
 
 // System KVP properties and time representations
 import java.util.Properties
+import org.management.observations.processing.ProjectConfiguration
+import scala.collection.JavaConversions._
 
 /**
   * QCBlockThreshold:
@@ -89,21 +92,26 @@ object QCBlockThreshold {
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
 
+    // Read the parameter configuration file
+    val params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+
     /**
       * Generate the properties for the kafka connections, this includes creating the schema
       * val, used to deserialize the SemanticObservationNumeric objects from the Kafka queue
       */
     val kafkaProp = new Properties()
-    kafkaProp.setProperty("bootstrap.servers", "localhost:9092");
-    kafkaProp.setProperty("zookeeper.connect", "localhost:2181");
-    kafkaProp.setProperty("group.id", "QCBlockThreshold");
+    kafkaProp.setProperty("bootstrap.servers", params.get("kafka-bootstrap"));
 
     val semanticInfo: TypeInformation[SemanticObservation] = TypeExtractor.createTypeInfo(classOf[SemanticObservation])
     val semanticSchema = new TypeInformationSerializationSchema[SemanticObservation](semanticInfo, new ExecutionConfig())
 
     // Read semantic observations into the stream
     val observationStream: DataStream[SemanticObservation] = env
-      .addSource(new FlinkKafkaConsumer09[SemanticObservation]("observation-qc-threshold", semanticSchema, kafkaProp))
+      .addSource(new FlinkKafkaConsumer09[SemanticObservation](
+        params.get("kafka-ingest-qc-threshold"),
+        semanticSchema,
+        kafkaProp)
+      )
 
     /**
       * Observation range thresholds:
@@ -118,7 +126,11 @@ object QCBlockThreshold {
     val quantitativeTypeSchema = new TypeInformationSerializationSchema[QCOutcomeQuantitative](quantitativeType, new ExecutionConfig())
 
     rangeStream
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative]("localhost:9092", "quantitative-persist", quantitativeTypeSchema))
+      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative](
+        params.get("kafka-producer"),
+        params.get("kafka-produce-qc-quantitative"),
+        quantitativeTypeSchema)
+      )
 
     /**
       * Windowed observation sigma (variance) range thresholds:
@@ -150,7 +162,11 @@ object QCBlockThreshold {
       .union(sigmaConcurrentStream12h, sigmaConcurrentStream24h)
 
     sigmaStream
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative]("localhost:9092", "quantitative-persist", quantitativeTypeSchema))
+      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative](
+        params.get("kafka-producer"),
+        params.get("kafka-produce-qc-quantitative"),
+        quantitativeTypeSchema)
+      )
 
     /**
       * Windowed observation delta (rate of change) thresholds:
@@ -172,8 +188,12 @@ object QCBlockThreshold {
     val deltaStream = deltaSpike.union(deltaStep)
 
     deltaStream
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative]("localhost:9092", "quantitative-persist", quantitativeTypeSchema))
+      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative](
+        params.get("kafka-producer"),
+        params.get("kafka-produce-qc-quantitative"),
+        quantitativeTypeSchema)
+      )
 
-    env.execute("QC Block One")
+    env.execute("QC Block Threshold")
   }
 }

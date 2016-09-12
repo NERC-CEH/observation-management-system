@@ -3,11 +3,15 @@ package org.management.observations.processing.bolts.qc.block.event
 import com.redis.RedisClient
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.java.tuple.Tuple
+import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.scala.function.RichWindowFunction
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow
 import org.apache.flink.util.Collector
+import org.management.observations.processing.ProjectConfiguration
 import org.management.observations.processing.tuples.{QCEvent, SemanticObservation}
+
+import scala.collection.JavaConversions._
 
 /**
   * QCCheckNullConsecutive
@@ -39,10 +43,12 @@ class QCBlockEventNullConsecutiveCheck extends RichWindowFunction[SemanticObserv
     */
   var state: ValueState[Tuple3[Long,Int, Boolean]] = null
 
-  @transient var redisCon: RedisClient = new RedisClient("localhost", 6379)
+  @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+  @transient var redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
 
   override def open(parameters: Configuration) = {
-    this.redisCon = new RedisClient("localhost", 6379)
+    this.params = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+    this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
 
     // Register the state variable
     state = getRuntimeContext.getState(new ValueStateDescriptor("QCNullConsecutive",classOf[Tuple3[Long, Int, Boolean]],null))

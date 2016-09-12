@@ -7,7 +7,7 @@ object ProjectConfiguration {
 
   val configMap = Map[String,String](
     // Redis Server
-    ("redis-conn-ip","192.168.0.32"),
+    ("redis-conn-ip","localhost"),
     ("redis-conn-port","6379"),
 
     // Kafka Server

@@ -2,6 +2,7 @@ package org.management.observations.processing.bolts.qc.block.event
 
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
+import org.apache.flink.api.java.utils.ParameterTool
 import org.management.observations.processing.tuples.SemanticObservation
 
 // The base class for the key tuple, in this case Tuple3
@@ -22,6 +23,10 @@ import org.apache.flink.util.Collector
 // The tuples used within this bolt
 import org.management.observations.processing.tuples.QCEvent
 
+// System KVP properties
+import org.management.observations.processing.ProjectConfiguration
+import scala.collection.JavaConversions._
+
 /**
   * QCCheckNullAggregate
   *
@@ -32,10 +37,12 @@ import org.management.observations.processing.tuples.QCEvent
   */
 class QCBlockEventNullAggregateCheck extends RichWindowFunction[SemanticObservation, QCEvent, Tuple, TimeWindow]{
 
-  @transient var redisCon: RedisClient = new RedisClient("localhost",6379)
+  @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+  @transient var redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
 
   override def open(parameters: Configuration) = {
-    this.redisCon =  new RedisClient("localhost",6379)
+    this.params = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+    this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
   def apply(key: Tuple, window: TimeWindow, input: Iterable[SemanticObservation], out: Collector[QCEvent]): Unit = {

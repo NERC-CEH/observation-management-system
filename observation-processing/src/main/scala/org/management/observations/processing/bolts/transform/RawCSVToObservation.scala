@@ -11,6 +11,10 @@ import org.management.observations.processing.tuples.RawObservation
 // The connection to the registry
 import com.redis.RedisClient
 
+// System KVP properties
+import org.management.observations.processing.ProjectConfiguration
+import scala.collection.JavaConversions._
+
 /**
   * RawCSVToObservation
   *
@@ -21,12 +25,14 @@ import com.redis.RedisClient
   */
 class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
 
-//  @transient var redisCon =  new RedisClient("192.168.3.5",6379)
-@transient var redisCon =  new RedisClient("localhost",6379)
+  // Read the parameter configuration file
+  @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+  @transient var redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
+
 
   override def open(parameters: Configuration) = {
- //   this.redisCon =  new RedisClient("192.168.3.5",6379)
-    this.redisCon =  new RedisClient("localhost",6379)
+    this.params = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+    this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
   def map(in: String): RawObservation = {
