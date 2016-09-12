@@ -21,11 +21,12 @@ import com.redis.RedisClient
   */
 class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
 
-  @transient var redisCon =  new RedisClient("192.168.3.5",6379)
-
+//  @transient var redisCon =  new RedisClient("192.168.3.5",6379)
+@transient var redisCon =  new RedisClient("localhost",6379)
 
   override def open(parameters: Configuration) = {
-    this.redisCon =  new RedisClient("192.168.3.5",6379)
+ //   this.redisCon =  new RedisClient("192.168.3.5",6379)
+    this.redisCon =  new RedisClient("localhost",6379)
   }
 
   def map(in: String): RawObservation = {
@@ -38,18 +39,37 @@ class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
       * - Does the observation have a millisecond timestamp
       * - Does the value conform to the type held in the registry
       * - Does the observation metadata have corresponding match
-      *   in the registry
+      *   in the registry (feature, procedure, observable property)
+      * - Does the observation have correctly formatted metadata fields
       */
-    val correctFields: Boolean = in.split(",").size == 4
+
+    // Four fields without metadata, five with metadata
+    val correctFields: Boolean = in.split(",").size == 4 || in.split(",").size == 5
 
     if(correctFields) {
 
+      // Does the entry have metadata
+      val hasMeta: Boolean = {
+        if(in.split(",").size == 5)
+          true
+        else
+          false
+      }
+
       // Check whether the observed value has a size or is empty
       val correctValueSize: Boolean = {
-        in.split(",")(0).size > 0 &&
-          in.split(",")(1).size > 0 &&
-          in.split(",")(2).size > 0 &&
-          in.split(",")(3).size > 0
+        if(!hasMeta){
+          in.split(",")(0).size > 0 &&
+            in.split(",")(1).size > 0 &&
+            in.split(",")(2).size > 0 &&
+            in.split(",")(3).size > 0
+        }else{
+          in.split(",")(0).size > 0 &&
+            in.split(",")(1).size > 0 &&
+            in.split(",")(2).size > 0 &&
+            in.split(",")(3).size > 0 &&
+            in.split(",")(4).size > 0
+        }
       }
 
       // Check the time representation is the correct format
@@ -104,13 +124,13 @@ class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
         if(observationType.isDefined){
           if(in.split(",")(3) == "NotAValue"){
             true
-          }else if(observationType == "numeric"  || observationType == "count"){
+          }else if(observationType.get == "numeric"  || observationType.get == "count"){
             try {
               in.split(",")(3).toDouble; true
             } catch {
               case e: Exception => false
             }
-          }else if(observationType == "category"){
+          }else if(observationType.get == "category"){
             true
           }else{
             false
@@ -121,27 +141,52 @@ class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
       }
 
       /**
+        * Is the metadata formatted correctly, expected format is:
+        * key=value::key=value::key=value
+        */
+      val metaOK: Boolean = {
+        if(!hasMeta){
+          true
+        }else{
+          if(in.split(",")(4).split("::").filter(_.split("=").size != 2).size == 0){
+            true
+          }else{
+            false
+          }
+        }
+      }
+
+      /**
         * Use the outcome of the above tests to generate the RawObservation
         * output objects.
         */
-      val parseOK: Boolean = correctValueSize && timeMilli && registryOK && typeOK
+      val parseOK: Boolean = correctValueSize && timeMilli && registryOK && typeOK && metaOK
 
       val parseMessage: String = {
         if(!correctValueSize) "Malformed observation tuple."
         else if(!registryOK) "Registry lookup failed."
         else if(!timeMilli) "Incorrect time representation."
         else if(!typeOK) "Observation type from registry not matched."
+        else if(!metaOK) "Metadata is not correctly formatted."
         else "Parsed OK."
       }
 
       val currObs: String = {
-        if (parseOK) feature.get + "," + procedure.get + "," + observableProperty.get + "," + in.split(",")(2)+","+in.split(",")(3)
+        if (parseOK && !hasMeta)
+          feature.get + "," + procedure.get + "," + observableProperty.get + "," + in.split(",")(2)+","+in.split(",")(3)
+        else if (parseOK && hasMeta)
+          feature.get + "," + procedure.get + "," + observableProperty.get + "," + in.split(",")(2)+","+in.split(",")(3)+","+in.split(",")(4)
         else in
+      }
+
+      val obsType: String = {
+        if(parseOK) observationType.get
+        else "Unknown"
       }
 
       new RawObservation(
         currObs,
-        observationType.get,
+        obsType,
         parseOK,
         parseMessage
       )

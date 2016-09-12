@@ -28,7 +28,7 @@ class SemanticStamp_CSVToRaw extends FunSuite {
 
     // Read in the test data
     val observationStream: DataStream[String] = env.fromCollection(
-      fromFile("/home/dciar86/GitHub/observation-management-system/code/src/test/resources/CSVObservations_SemanticStamp.csv")
+      fromFile("/home/dciar86/GitHub/observation-management-system/observation-processing/src/test/resources/CSVObservations_SemanticStamp.csv")
         .getLines().toSeq
     )
 
@@ -53,14 +53,14 @@ class SemanticStamp_CSVToRaw extends FunSuite {
     assert(
       dataset
         .filter(_.parseOK)
-        .size == 7
+        .size == 6
     )
   }
 
   test("Does the dataset contain the correct number of OK numeric observations?"){
     assert(
       dataset
-        .filter(_.observationType == "Numerical")
+        .filter(_.observationType == "numeric")
         .filter(_.parseOK == true)
         .size == 6
     )
@@ -69,9 +69,9 @@ class SemanticStamp_CSVToRaw extends FunSuite {
   test("Does the dataset contain the correct number of OK categorical observations"){
     assert(
       dataset
-        .filter(_.observationType == "Categorical")
+        .filter(_.observationType == "category")
         .filter(_.parseOK == true)
-        .size == 1
+        .size == 0
     )
   }
 
@@ -95,10 +95,17 @@ class SemanticStamp_CSVToRaw extends FunSuite {
     assert(
       dataset
         .filter(_.parseMessage == "Malformed observation tuple.")
-        .size == 6
+        .size == 5
     )
   }
 
+  test("Does the dataset contain the correct number of metadata parsing errors?"){
+    assert(
+      dataset
+        .filter(_.parseMessage == "Metadata is not correctly formatted.")
+        .size == 1
+    )
+  }
 }
 
 

@@ -27,7 +27,7 @@ class SemanticStamp_RawToSemantic extends FunSuite {
 
     // Read in the test data
     val observationStream: DataStream[String] = env.fromCollection(
-      fromFile("/home/dciar86/GitHub/observation-management-system/code/src/test/resources/CSVObservations_SemanticStamp.csv")
+      fromFile("/home/dciar86/GitHub/observation-management-system/observation-processing/src/test/resources/CSVObservations_SemanticStamp.csv")
         .getLines().toSeq
     )
 
@@ -47,13 +47,13 @@ class SemanticStamp_RawToSemantic extends FunSuite {
   val dataset = obs.toIndexedSeq
 
   test("Does the dataset contain the correct number of observations?"){
-    assert(dataset.size == 7)
+    assert(dataset.size == 6)
   }
 
   test("Does the dataset contain the correct number of numeric observations?"){
     assert(
       dataset
-        .filter(_.observationType == "Numerical")
+        .filter(_.observationType == "numeric")
         .filter(x => x.categoricalObservation.isEmpty)
         .size == 6
     )
@@ -62,9 +62,9 @@ class SemanticStamp_RawToSemantic extends FunSuite {
   test("Does the dataset contain the correct number of categorical observations?"){
     assert(
       dataset
-        .filter(_.observationType == "Categorical")
+        .filter(_.observationType == "category")
         .filter(_.categoricalObservation.isDefined)
-        .size == 1
+        .size == 0
     )
   }
 
@@ -72,7 +72,7 @@ class SemanticStamp_RawToSemantic extends FunSuite {
     assert(
       dataset
         .filter(_.year == 2016)
-        .size == 7
+        .size == 6
     )
   }
 
@@ -80,7 +80,7 @@ class SemanticStamp_RawToSemantic extends FunSuite {
     assert(
       dataset
         .filter(_.month == 8)
-        .size == 7
+        .size == 6
     )
   }
 
@@ -88,7 +88,23 @@ class SemanticStamp_RawToSemantic extends FunSuite {
     assert(
       dataset
         .filter(x => x.phenomenontimestart == x.phenomenontimeend)
-        .size == 7
+        .size == 6
+    )
+  }
+
+  test("Have the correct number of metadata entries been parsed?"){
+    assert(
+      dataset
+        .filter(x => x.parameters.isDefined)
+        .size == 1
+    )
+  }
+
+  test("Are the correct metadata entries available?"){
+    assert(
+      dataset
+        .filter(x => x.parameters.isDefined)
+        (0).parameters.get.keySet.intersect(Set("valueA","valueB","valueC")).size == 3
     )
   }
 }

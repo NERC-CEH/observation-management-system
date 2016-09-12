@@ -62,6 +62,13 @@ class RawToSemanticObservation extends MapFunction[RawObservation, SemanticObser
       }
     }
 
+    // Create the metadata map when metadata records are provided
+    val metaMap = scala.collection.mutable.Map[String, String]()
+    if(currObservation.size == 6){
+      currObservation(5).split("::").foreach(x => metaMap.put(x.split("=")(0), x.split("=")(1)))
+    }
+
+
     /**
       * Create the initial values for the stage of
       * processing.
@@ -74,10 +81,12 @@ class RawToSemanticObservation extends MapFunction[RawObservation, SemanticObser
     val accuracy = 0
     val status = "Raw"
     val processing = "SemanticStamp"
-    val uncertml = "NA"
+    val uncertml = None
     val comment = "No processing performed."
-    val location = "NA"
-    val parameters = "NA"
+    val location = None
+    val parameters: Option[scala.collection.mutable.Map[String, String]] =
+      if(metaMap.keys.nonEmpty) Some(metaMap)
+      else None
 
     new SemanticObservation(procedure,
       feature,

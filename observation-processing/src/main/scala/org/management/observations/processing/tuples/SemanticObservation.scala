@@ -39,10 +39,10 @@ case class SemanticObservation(procedure: String,
                                accuracy: Double,
                                status: String,
                                processing: String,
-                               uncertml: String,
+                               uncertml: Option[String],
                                comment: String,
-                               location: String,
-                               parameters: String)
+                               location: Option[String],
+                               parameters: Option[scala.collection.mutable.Map[String,String]])
   extends BaseSemanticRecord {
 
     override def toString: String = procedure +
@@ -79,5 +79,5 @@ case class SemanticObservation(procedure: String,
       ',' +
       location +
       ',' +
-      parameters
+      parameters.toString
 }
