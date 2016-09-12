@@ -31,7 +31,7 @@ class QCBlockMeta_Identity extends FunSuite {
 
     // Read in the test data
     val observationStream: DataStream[MetaDataObservation] = env.fromCollection(
-      fromFile("/home/dciar86/GitHub/observation-management-system/code/src/test/resources/CSVMetaObservations_QCBlock_Meta.csv")
+      fromFile("/home/dciar86/GitHub/observation-management-system/observation-processing/src/test/resources/CSVMetaObservations_QCBlock_Meta.csv")
         .getLines().toSeq
     )
       .map(new RawCSVToMetaRecord)

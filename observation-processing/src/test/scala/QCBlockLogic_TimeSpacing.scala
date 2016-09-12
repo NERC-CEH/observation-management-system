@@ -32,7 +32,7 @@ class QCBlockLogic_TimeSpacing extends FunSuite {
 
     // Read in the test data
     val observationStream: DataStream[SemanticObservation] = env.fromCollection(
-      fromFile("/home/dciar86/GitHub/observation-management-system/code/src/test/resources/CSVObservations_QCBlock_Logic_Spacing.csv")
+      fromFile("/home/dciar86/GitHub/observation-management-system/observation-processing/src/test/resources/CSVObservations_QCBlock_Logic_Spacing.csv")
         .getLines().toSeq
     )
       .map(new RawCSVToObservation)

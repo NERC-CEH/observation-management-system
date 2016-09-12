@@ -29,7 +29,7 @@ class QCBlockLogic_TimeOrder extends FunSuite {
 
     // Read in the test data
     val observationStream: DataStream[SemanticObservation] = env.fromCollection(
-      fromFile("/home/dciar86/GitHub/observation-management-system/code/src/test/resources/CSVObservations_QCBlock_Logic_Order.csv")
+      fromFile("/home/dciar86/GitHub/observation-management-system/observation-processing/src/test/resources/CSVObservations_QCBlock_Logic_Order.csv")
         .getLines().toSeq
     )
       .map(new RawCSVToObservation)

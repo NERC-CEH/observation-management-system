@@ -40,7 +40,7 @@ class QCBlockThreshold_Sigma extends FunSuite {
 
     // Read in the test data
     val observationStream: DataStream[SemanticObservation] = env.fromCollection(
-      fromFile("/home/dciar86/GitHub/observation-management-system/code/src/test/resources/CSVObservations_QCBlock_Threshold_Sigma.csv")
+      fromFile("/home/dciar86/GitHub/observation-management-system/observation-processing/src/test/resources/CSVObservations_QCBlock_Threshold_Sigma.csv")
         .getLines().toSeq
     )
       .map(new RawCSVToObservation)

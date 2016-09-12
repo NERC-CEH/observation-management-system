@@ -31,7 +31,7 @@ class QCBlockLogic_NullStream extends FunSuite {
 
     // Read in the test data
     val observationStream: DataStream[SemanticObservation] = env.fromCollection(
-      fromFile("/home/dciar86/GitHub/observation-management-system/code/src/test/resources/CSVObservations_QCBlock_Logic_NullStream.csv")
+      fromFile("/home/dciar86/GitHub/observation-management-system/observation-processing/src/test/resources/CSVObservations_QCBlock_Logic_NullStream.csv")
         .getLines().toSeq
     )
       .map(new RawCSVToObservation)
@@ -52,14 +52,14 @@ class QCBlockLogic_NullStream extends FunSuite {
   val dataset = obs.toIndexedSeq
 
   test("Is the dataset the correct size?"){
-    assert(dataset.size == 8)
+    assert(dataset.size == 6)
   }
 
   test("Does the dataset contain the correct number of pass values?"){
     assert(
       dataset
         .filter(_.qualitative == "pass")
-        .size == 5
+        .size == 3
     )
   }
 

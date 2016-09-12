@@ -31,7 +31,7 @@ class QCBlockMeta_CSVToMeta extends FunSuite {
 
     // Read in the test data and perform the bolt
     val observationStream: DataStream[MetaDataObservation] = env.fromCollection(
-      fromFile("/home/dciar86/GitHub/observation-management-system/code/src/test/resources/CSVMetaObservations_QCBlock_Meta.csv")
+      fromFile("/home/dciar86/GitHub/observation-management-system/observation-processing/src/test/resources/CSVMetaObservations_QCBlock_Meta.csv")
         .getLines().toSeq
     )
       .map(new RawCSVToMetaRecord)
