@@ -177,8 +177,8 @@ class QCBlockThresholdRangeCheck extends RichFlatMapFunction[SemanticObservation
           if(minCompareVal.isDefined) {
 
             val quantitativeVal: Double = minCompareVal.get.toDouble  - observationValue
-            val testId: String = "http://placeholder.catalogue.ceh.ac.uk/qc/range/" + test + "/min"
-            val outcome: String = if(quantitativeVal > 0) "fail" else "pass"
+            val testId: String = params.get("qc-threshold-range-prefix") + test + "/min"
+            val outcome: String = if(quantitativeVal > 0) params.get("qc-outcome-fail") else params.get("qc-outcome-pass")
 
             observations.foreach(x =>
               out.collect(createQCOutcomeQuantitative(
@@ -193,8 +193,8 @@ class QCBlockThresholdRangeCheck extends RichFlatMapFunction[SemanticObservation
           if(maxCompareVal.isDefined) {
 
             val quantitativeVal: Double = observationValue - maxCompareVal.get.toDouble
-            val testId = "http://placeholder.catalogue.ceh.ac.uk/qc/range/" + test + "/max"
-            val outcome = if(quantitativeVal > 0) "fail" else "pass"
+            val testId = params.get("qc-threshold-range-prefix") + test + "/max"
+            val outcome = if(quantitativeVal > 0) params.get("qc-outcome-fail") else params.get("qc-outcome-pass")
 
             observations.foreach(x =>
               out.collect(createQCOutcomeQuantitative(

@@ -61,8 +61,8 @@ class QCBlockMetaIdentityCheck extends RichFlatMapFunction[MetaDataObservation, 
           val procedure: String = tmpEntry(1)
           val observableproperty: String = tmpEntry(2)
 
-          val qualifier: String = "http://placeholder.catalogue.ceh.ac.uk/qc/meta/identity/" + in.dataType
-          val qualitative: String = "fail"
+          val qualifier: String = params.get("qc-logic-meta-identity-prefix") + in.dataType
+          val qualitative: String = params.get("qc-outcome-fail")
 
           out.collect(new MetaOutcomeQualitative(
             feature,

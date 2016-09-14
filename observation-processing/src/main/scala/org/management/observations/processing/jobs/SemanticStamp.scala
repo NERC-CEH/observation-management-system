@@ -99,10 +99,11 @@ object SemanticStamp{
       .map(new RawToSemanticObservation())
 
     semanticStream
-      .addSink(new FlinkKafkaProducer09[SemanticObservation](
+      .map(_.toString)
+      .addSink(new FlinkKafkaProducer09[String](
         params.get("kafka-producer"),
         params.get("kafka-produce-observation-persist"),
-        semanticTypeSchema)
+        new SimpleStringSchema)
       )
 
     /**

@@ -194,7 +194,7 @@ class QCBlockMetaValueRangeCheck extends RichFlatMapFunction[MetaDataObservation
           if(minCompareVal.isDefined) {
 
             val quantitativeVal: Double = minCompareVal.get.toDouble  - observationValue
-            val testId: String = "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/" + in.dataType + "/" + test + "/min"
+            val testId: String = params.get("qc-logic-meta-value-range-prefix") + in.dataType + "/" + test + "/min"
 
             if (quantitativeVal > 0) {
 
@@ -208,7 +208,7 @@ class QCBlockMetaValueRangeCheck extends RichFlatMapFunction[MetaDataObservation
                     in.startTime.toLong,
                     in.endTime.toLong,
                     testId,
-                    "fail",
+                    params.get("qc-outcome-fail"),
                     quantitativeVal
                   ))
                 }
@@ -219,7 +219,7 @@ class QCBlockMetaValueRangeCheck extends RichFlatMapFunction[MetaDataObservation
           if(maxCompareVal.isDefined) {
 
             val quantitativeVal: Double = observationValue - maxCompareVal.get.toDouble
-            val testId = "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/" + in.dataType + "/" + test + "/max"
+            val testId = params.get("qc-logic-meta-value-range-prefix") + in.dataType + "/" + test + "/max"
 
             if (quantitativeVal > 0) {
 
@@ -233,7 +233,7 @@ class QCBlockMetaValueRangeCheck extends RichFlatMapFunction[MetaDataObservation
                     in.startTime.toLong,
                     in.endTime.toLong,
                     testId,
-                    "fail",
+                    params.get("qc-outcome-fail"),
                     quantitativeVal
                   ))
                 }

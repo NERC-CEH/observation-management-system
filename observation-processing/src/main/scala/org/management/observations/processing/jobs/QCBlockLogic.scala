@@ -91,10 +91,11 @@ object QCBlockLogic extends SemanticObservationFlow{
       .map(new QCBlockLogicNull())
 
     nullQC
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQualitative](
+      .map(_.toString)
+      .addSink(new FlinkKafkaProducer09[String](
         params.get("kafka-producer"),
         params.get("kafka-produce-qc-qualitative"),
-        qualitativeTypeSchema)
+        new SimpleStringSchema)
       )
 
     /**
@@ -114,10 +115,11 @@ object QCBlockLogic extends SemanticObservationFlow{
     val quantitativeTypeSchema = new TypeInformationSerializationSchema[QCOutcomeQuantitative](quantitativeType, new ExecutionConfig())
 
     timeQC
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative](
+      .map(_.toString)
+      .addSink(new FlinkKafkaProducer09[String](
         params.get("kafka-producer"),
         params.get("kafka-produce-qc-quantitative"),
-        quantitativeTypeSchema)
+        new SimpleStringSchema)
       )
 
     /**
@@ -137,17 +139,19 @@ object QCBlockLogic extends SemanticObservationFlow{
       .flatMap(new QCBlockLogicDefaultMetaValue())
 
     identityMetaStream
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQualitative](
+      .map(_.toString)
+      .addSink(new FlinkKafkaProducer09[String](
         params.get("kafka-producer"),
         params.get("kafka-produce-qc-qualitative"),
-        qualitativeTypeSchema)
+        new SimpleStringSchema)
       )
 
     valueMetaStream
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative](
+      .map(_.toString)
+      .addSink(new FlinkKafkaProducer09[String](
         params.get("kafka-producer"),
         params.get("kafka-produce-qc-quantitative"),
-        quantitativeTypeSchema)
+        new SimpleStringSchema)
       )
 
     /**

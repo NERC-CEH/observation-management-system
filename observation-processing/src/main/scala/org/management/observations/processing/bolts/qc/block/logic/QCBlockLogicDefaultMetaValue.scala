@@ -65,12 +65,12 @@ class QCBlockLogicDefaultMetaValue extends RichFlatMapFunction[SemanticObservati
           checkInstance.get.split("::").foreach(valCheckInstance =>{
 
             out.collect(createQCOutcomeQuantitative(in,
-              "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/" + valCheck + "/" + valCheckInstance + "/min",
-              "pass",
+              params.get("qc-logic-meta-value-range-prefix") + valCheck + "/" + valCheckInstance + "/min",
+              params.get("qc-outcome-pass"),
               0))
             out.collect(createQCOutcomeQuantitative(in,
-              "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/" + valCheck + "/" + valCheckInstance + "/max",
-              "pass",
+              params.get("qc-logic-meta-value-range-prefix") + valCheck + "/" + valCheckInstance + "/max",
+              params.get("qc-outcome-pass"),
               0))
 
           })

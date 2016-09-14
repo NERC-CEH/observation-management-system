@@ -126,10 +126,11 @@ object QCBlockThreshold {
     val quantitativeTypeSchema = new TypeInformationSerializationSchema[QCOutcomeQuantitative](quantitativeType, new ExecutionConfig())
 
     rangeStream
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative](
+      .map(_.toString)
+      .addSink(new FlinkKafkaProducer09[String](
         params.get("kafka-producer"),
         params.get("kafka-produce-qc-quantitative"),
-        quantitativeTypeSchema)
+        new SimpleStringSchema)
       )
 
     /**
@@ -162,10 +163,11 @@ object QCBlockThreshold {
       .union(sigmaConcurrentStream12h, sigmaConcurrentStream24h)
 
     sigmaStream
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative](
+      .map(_.toString)
+      .addSink(new FlinkKafkaProducer09[String](
         params.get("kafka-producer"),
         params.get("kafka-produce-qc-quantitative"),
-        quantitativeTypeSchema)
+        new SimpleStringSchema)
       )
 
     /**
@@ -188,10 +190,11 @@ object QCBlockThreshold {
     val deltaStream = deltaSpike.union(deltaStep)
 
     deltaStream
-      .addSink(new FlinkKafkaProducer09[QCOutcomeQuantitative](
+      .map(_.toString)
+      .addSink(new FlinkKafkaProducer09[String](
         params.get("kafka-producer"),
         params.get("kafka-produce-qc-quantitative"),
-        quantitativeTypeSchema)
+        new SimpleStringSchema)
       )
 
     env.execute("QC Block Threshold")

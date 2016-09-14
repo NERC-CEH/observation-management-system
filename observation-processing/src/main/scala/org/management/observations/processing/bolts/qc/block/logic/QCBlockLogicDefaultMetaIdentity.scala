@@ -45,8 +45,8 @@ class QCBlockLogicDefaultMetaIdentity extends RichFlatMapFunction[SemanticObserv
 
         identityChecks.get.split("::").foreach(x => {
         out.collect(createQCOutcomeQualitative(in,
-          "http://placeholder.catalogue.ceh.ac.uk/qc/meta/identity/"+ x,
-          "pass"))
+          params.get("qc-logic-meta-identity-prefix") + x,
+          params.get("qc-outcome-pass")))
       })
     }
   }

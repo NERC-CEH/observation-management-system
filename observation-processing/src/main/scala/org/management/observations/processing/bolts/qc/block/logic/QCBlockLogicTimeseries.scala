@@ -68,8 +68,8 @@ class QCBlockLogicTimeseries extends RichWindowFunction[SemanticObservation, QCO
   def apply(key: Tuple, window: GlobalWindow, input: Iterable[SemanticObservation], out: Collector[QCOutcomeQuantitative]): Unit = {
 
     // Set  QC identifiers
-    val orderCheck: String = "http://placeholder.catalogue.ceh.ac.uk/qc/timing/order"
-    val spacingCheck: String = "http://placeholder.catalogue.ceh.ac.uk/qc/timing/intendedspacing"
+    val orderCheck: String = params.get("qc-logic-order")
+    val spacingCheck: String = params.get("qc-logic-spacing")
 
     // Check if intendedspacing is held in the registry
     val spacingLookup: Option[String] = try {
@@ -103,13 +103,13 @@ class QCBlockLogicTimeseries extends RichWindowFunction[SemanticObservation, QCO
     if(inOrder) {
       out.collect(createQCOutcomeQuantitative(input.head,
         orderCheck,
-        "pass",
+        params.get("qc-outcome-pass"),
         -orderDifference
       ))
     }else {
       out.collect(createQCOutcomeQuantitative(input.head,
         orderCheck,
-        "fail",
+        params.get("qc-outcome-fail"),
         orderDifference
       ))
     }
@@ -123,19 +123,19 @@ class QCBlockLogicTimeseries extends RichWindowFunction[SemanticObservation, QCO
       if(state.value() == null) {
         out.collect(createQCOutcomeQuantitative(input.head,
           spacingCheck,
-          "pass",
+          params.get("qc-outcome-pass"),
           0
         ))
       }else if(orderDifference <= spacingLookup.get.toLong) {
           out.collect(createQCOutcomeQuantitative(input.head,
             spacingCheck,
-            "pass",
+            params.get("qc-outcome-pass"),
             -orderDifference
           ))
       }else {
         out.collect(createQCOutcomeQuantitative(input.head,
           spacingCheck,
-          "fail",
+          params.get("qc-outcome-fail"),
           orderDifference
         ))
       }
