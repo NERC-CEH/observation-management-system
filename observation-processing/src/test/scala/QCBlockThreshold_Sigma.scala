@@ -111,7 +111,7 @@ class QCBlockThreshold_Sigma extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/24h/static/min")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 29
     )
   }
@@ -121,7 +121,7 @@ class QCBlockThreshold_Sigma extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/24h/static/min")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 3
     )
   }
@@ -130,7 +130,7 @@ class QCBlockThreshold_Sigma extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/24h/static/max")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 32
     )
   }
@@ -142,7 +142,7 @@ class QCBlockThreshold_Sigma extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/12h/static/min")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 30
     )
   }
@@ -152,7 +152,7 @@ class QCBlockThreshold_Sigma extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/12h/static/min")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 2
     )
   }
@@ -161,7 +161,7 @@ class QCBlockThreshold_Sigma extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/12h/static/max")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 32
     )
   }
@@ -174,7 +174,7 @@ class QCBlockThreshold_Sigma extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/1h/static/min")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 32
     )
   }
@@ -184,7 +184,7 @@ class QCBlockThreshold_Sigma extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/1h/static/min")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 0
     )
   }
@@ -193,7 +193,7 @@ class QCBlockThreshold_Sigma extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/1h/static/max")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 32
     )
   }
@@ -202,67 +202,67 @@ class QCBlockThreshold_Sigma extends FunSuite {
     assert(
       dataset
         .filter(_.quantitative == 0)
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/1h/static/min")
         .size == 32
       &&
       dataset
         .filter(_.quantitative == -1)
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/1h/static/max")
         .size == 32
       &&
       dataset
         .filter(_.quantitative == 0)
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/12h/static/min")
         .size == 30
       &&
       dataset
         .filter(_.quantitative == 0.5)
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/12h/static/min")
         .size == 2
       &&
       dataset
         .filter(_.quantitative == -1)
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/12h/static/max")
         .size == 30
       &&
       dataset
         .filter(_.quantitative == -1.5)
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/12h/static/max")
         .size == 2
       &&
       dataset
         .filter(_.quantitative == -1.5)
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/24h/static/min")
         .size == 24
       &&
       dataset
         .filter(_.quantitative == -0.5)
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/24h/static/max")
         .size == 24
       &&
       dataset
         .filter(_.quantitative == -0.5)
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/24h/static/min")
         .size == 5
       &&
       dataset
         .filter(_.quantitative == -1.5)
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/24h/static/max")
         .size == 5
       &&
       dataset
         .filter(_.quantitative == 1)
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/24h/static/min")
         .size == 3
     )

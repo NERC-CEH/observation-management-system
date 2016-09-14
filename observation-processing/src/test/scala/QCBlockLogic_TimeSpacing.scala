@@ -64,17 +64,17 @@ class QCBlockLogic_TimeSpacing extends FunSuite {
   }
 
   test("Are the correct number of records marked as failing?"){
-    assert(dataset.filter(_.qualitative == "fail").size == 2)
+    assert(dataset.filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail").size == 2)
   }
 
   test("Are the correct number of records marked as passing?"){
-    assert(dataset.filter(_.qualitative == "pass").size == 6)
+    assert(dataset.filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass").size == 6)
   }
 
   test("Is the expected time spacing being reported for passing records before state is established?"){
     assert(
       dataset
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.quantitative == 0)
         .size == 1
     )
@@ -83,7 +83,7 @@ class QCBlockLogic_TimeSpacing extends FunSuite {
   test("Is the expected time spacing being reported for passing records once state is established?"){
     assert(
       dataset
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .filter(_.quantitative == -240000)
         .size == 5
     )
@@ -92,7 +92,7 @@ class QCBlockLogic_TimeSpacing extends FunSuite {
   test("Is the expected time spacing being reported for failing records"){
     assert(
       dataset
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .filter(_.quantitative == 480000)
         .size == 2
     )

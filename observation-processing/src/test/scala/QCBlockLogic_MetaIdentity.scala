@@ -84,7 +84,7 @@ class QCBlockLogic_MetaIdentity extends FunSuite {
   test("Do all the records pass?"){
     assert(
       dataset
-        .count(_.qualitative == "pass") == 6
+        .count(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass") == 6
     )
   }
 }

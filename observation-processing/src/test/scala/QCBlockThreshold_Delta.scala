@@ -91,7 +91,7 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/static/min")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 30
     )
   }
@@ -100,7 +100,7 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
       assert(
         dataset
           .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/static/max")
-          .filter(_.qualitative == "pass")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
           .size == 21
       )
     }
@@ -109,7 +109,7 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/static/max")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 9
     )
   }
@@ -137,7 +137,7 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
       assert(
         dataset
           .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/static/min")
-          .filter(_.qualitative == "pass")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
           .size == 62
       )
     }
@@ -146,7 +146,7 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
       assert(
         dataset
           .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/static/max")
-          .filter(_.qualitative == "pass")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
           .size == 48
       )
     }
@@ -155,7 +155,7 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
       assert(
         dataset
           .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/static/max")
-          .filter(_.qualitative == "fail")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
           .size == 14
       )
     }
@@ -165,31 +165,31 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
         dataset
           .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/static/max")
           .filter(_.quantitative == 1)
-          .filter(_.qualitative == "fail")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
           .size == 6
         &&
         dataset
           .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/static/max")
           .filter(_.quantitative == 19)
-          .filter(_.qualitative == "fail")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
           .size == 2
         &&
         dataset
           .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/static/max")
           .filter(_.quantitative == 17)
-          .filter(_.qualitative == "fail")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
           .size == 2
         &&
         dataset
           .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/static/max")
           .filter(_.quantitative == 61)
-          .filter(_.qualitative == "fail")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
           .size == 2
         &&
         dataset
           .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/static/max")
           .filter(_.quantitative == 59)
-          .filter(_.qualitative == "fail")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
           .size == 2
       )
     }
@@ -199,31 +199,31 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
         dataset
           .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/static/max")
           .filter(_.quantitative == 13)
-          .filter(_.qualitative == "fail")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
           .size == 4
           &&
           dataset
             .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/static/max")
             .filter(_.quantitative == 7)
-            .filter(_.qualitative == "fail")
+            .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
             .size == 1
           &&
           dataset
             .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/static/max")
             .filter(_.quantitative == 49)
-            .filter(_.qualitative == "fail")
+            .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
             .size == 1
           &&
           dataset
             .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/static/max")
             .filter(_.quantitative == 9)
-            .filter(_.qualitative == "fail")
+            .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
             .size == 1
           &&
           dataset
             .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/static/max")
             .filter(_.quantitative == 133)
-            .filter(_.qualitative == "fail")
+            .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
             .size == 1
       )
     }

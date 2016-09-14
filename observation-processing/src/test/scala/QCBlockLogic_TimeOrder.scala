@@ -63,21 +63,21 @@ class QCBlockLogic_TimeOrder extends FunSuite {
   test("Does the dataset contain the correct number of OK observations?"){
     assert(
       dataset
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 8)
   }
 
   test("Does the dataset contain the correct number of out of order observations?"){
     assert(
       dataset
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 3)
   }
 
   test("Does the dataset contain the correct quantitative output for the ordered observations?"){
     assert(
       dataset
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .count(x => x.quantitative == -100000) == 7
     )
   }
@@ -85,7 +85,7 @@ class QCBlockLogic_TimeOrder extends FunSuite {
   test("Does the dataset contain the correct quantitative output for the first observation?"){
     assert(
       dataset
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .exists(_.quantitative == 0)
     )
   }
@@ -93,13 +93,13 @@ class QCBlockLogic_TimeOrder extends FunSuite {
   test("Does the dataset contain the correct quantitative output for the out of order observations?"){
     assert(
       dataset
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .exists(_.quantitative == 400000) &&
       dataset
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .exists(_.quantitative == 500000) &&
       dataset
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .exists(_.quantitative == 600000)
     )
   }

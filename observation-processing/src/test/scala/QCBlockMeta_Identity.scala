@@ -58,7 +58,7 @@ class QCBlockMeta_Identity extends FunSuite {
   test("Does the dataset contain the correct assignment of feature, observableproperty for prtone?"){
     assert(
       dataset
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .filter(_.procedure == "prtone")
         .filter(_.feature == "southbasin")
         .filter(_.observableproperty == "temperature")
@@ -69,7 +69,7 @@ class QCBlockMeta_Identity extends FunSuite {
   test("Does the dataset contain the correct assignment of feature, observableproperty for prttwo?"){
     assert(
       dataset
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .filter(_.procedure == "prttwo")
         .filter(_.feature == "southbasin")
         .filter(_.observableproperty == "temperature")

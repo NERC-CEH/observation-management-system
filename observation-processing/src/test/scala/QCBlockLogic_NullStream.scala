@@ -58,7 +58,7 @@ class QCBlockLogic_NullStream extends FunSuite {
   test("Does the dataset contain the correct number of pass values?"){
     assert(
       dataset
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 3
     )
   }
@@ -66,7 +66,7 @@ class QCBlockLogic_NullStream extends FunSuite {
   test("Does the dataset contain the correct number of fail values?"){
     assert(
       dataset
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 3
     )
   }

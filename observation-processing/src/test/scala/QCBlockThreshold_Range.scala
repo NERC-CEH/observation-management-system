@@ -82,7 +82,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/static/min")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 29
     )
   }
@@ -91,7 +91,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/static/max")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 30
     )
   }
@@ -100,7 +100,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/static/min")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 3
     )
   }
@@ -109,7 +109,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/static/max")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 2
     )
   }
@@ -134,7 +134,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/hourlyTL/min")
-          .filter(_.qualitative == "pass")
+          .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 1
     )
   }
@@ -143,7 +143,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/hourlyTL/max")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 1
     )
   }
@@ -168,7 +168,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/dailyTL/min")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 4
     )
   }
@@ -177,7 +177,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/dailyTL/min")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 2
     )
   }
@@ -186,7 +186,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/dailyTL/max")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 3
     )
   }
@@ -195,7 +195,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/dailyTL/max")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 3
     )
   }
@@ -220,7 +220,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/monthlyTL/min")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 31
     )
   }
@@ -229,7 +229,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/monthlyTL/min")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 1
     )
   }
@@ -238,7 +238,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/monthlyTL/max")
-        .filter(_.qualitative == "pass")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/pass")
         .size == 30
     )
   }
@@ -247,7 +247,7 @@ class QCBlockThreshold_Range extends FunSuite {
     assert(
       dataset
         .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/range/monthlyTL/max")
-        .filter(_.qualitative == "fail")
+        .filter(_.qualitative == "http://placeholder.catalogue.ceh.ac.uk/fail")
         .size == 2
     )
   }
