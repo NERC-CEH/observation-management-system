@@ -89,8 +89,8 @@ class RawToSemanticObservation extends MapFunction[RawObservation, SemanticObser
       if(metaMap.keys.nonEmpty) Some(metaMap)
       else None
 
-    new SemanticObservation(procedure,
-      feature,
+    new SemanticObservation(feature,
+      procedure,
       observableproperty,
       year,
       month,
