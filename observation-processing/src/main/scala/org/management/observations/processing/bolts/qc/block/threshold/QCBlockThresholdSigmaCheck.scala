@@ -23,7 +23,7 @@ import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, ZoneOffset}
 
 // Used to calculate variance
-import org.apache.commons.math.stat.descriptive.SummaryStatistics
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics
 
 // System KVP properties
 import org.management.observations.processing.ProjectConfiguration
@@ -221,8 +221,8 @@ class QCBlockThresholdSigmaCheck extends RichWindowFunction[SemanticObservation,
           if(minCompareVal.isDefined) {
 
             val quantitativeVal: Double = minCompareVal.get.toDouble  - observationValue
-            val testId: String = "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/" + windowduration +"/" + test + "/min"
-            val outcome: String = if(quantitativeVal > 0) "fail" else "pass"
+            val testId: String = params.get("qc-threshold-sigma-prefix") + windowduration + "/" + test + "/min"
+            val outcome: String = if(quantitativeVal > 0) params.get("qc-outcome-fail") else params.get("qc-outcome-pass")
 
             observations.foreach(x =>
               out.collect(createQCOutcomeQuantitative(
@@ -237,8 +237,8 @@ class QCBlockThresholdSigmaCheck extends RichWindowFunction[SemanticObservation,
           if(maxCompareVal.isDefined) {
 
             val quantitativeVal: Double =  observationValue - maxCompareVal.get.toDouble
-            val testId: String = "http://placeholder.catalogue.ceh.ac.uk/qc/sigma/" + windowduration +"/" + test + "/max"
-            val outcome: String = if(quantitativeVal > 0) "fail" else "pass"
+            val testId: String = params.get("qc-threshold-sigma-prefix") + windowduration + "/" + test + "/max"
+            val outcome: String = if(quantitativeVal > 0) params.get("qc-outcome-fail") else params.get("qc-outcome-pass")
 
             observations.foreach(x =>
               out.collect(createQCOutcomeQuantitative(
