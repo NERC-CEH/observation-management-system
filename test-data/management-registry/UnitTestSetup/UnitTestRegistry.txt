@@ -1,0 +1,89 @@
+SET SBAS::PRT1::feature southbasin
+SET SBAS::PRT1::procedure prtone
+SET SBAS::PRT1::observableproperty temperature
+SET SBAS::PRT1::observationtype numeric
+
+SET SBAS::PRT2::feature southbasin
+SET SBAS::PRT2::procedure prttwo
+SET SBAS::PRT2::observableproperty temperature
+
+SET southbasin::prtone::temperature::intendedspacing 240000
+ 
+SET southbasin::meta::identity maintenance::cleaning::reset
+SET southbasin::meta::identity::maintenance southbasin,prtone,temperature::southbasin,prttwo,temperature
+ 
+SET southbasin::meta::value battery::wifi::network::sdcard::cabling
+
+SET southbasin::meta::value::battery southbasin,prtone,temperature::southbasin,prttwo,temperature
+
+SET southbasin::meta::value::battery::thresholds::range static::hourlybattery::dailybattery::monthlybattery
+SET southbasin::meta::value::battery::thresholds::range::static single
+SET southbasin::meta::value::battery::thresholds::range::hourlybattery hour
+SET southbasin::meta::value::battery::thresholds::range::dailybattery day
+SET southbasin::meta::value::battery::thresholds::range::monthlybattery month
+
+SET southbasin::meta::value::battery::thresholds::range::static::min 10
+SET southbasin::meta::value::battery::thresholds::range::static::max 14
+
+SET southbasin::meta::value::battery::thresholds::range::hourlybattery::min::2016-08-01T12 14
+SET southbasin::meta::value::battery::thresholds::range::hourlybattery::max::2016-08-01T12 31
+
+SET southbasin::meta::value::battery::thresholds::range::dailybattery::min::2016-08-01 14
+SET southbasin::meta::value::battery::thresholds::range::dailybattery::max::2016-08-01 31
+
+SET southbasin::meta::value::battery::thresholds::range::monthlybattery::min::2016-08 14
+SET southbasin::meta::value::battery::thresholds::range::monthlybattery::max::2016-08 31
+
+SET southbasin::meta::value::network southbasin,prtone,temperature
+
+SET southbasin::meta::value::sdcard southbasin,prtone,temperature
+
+SET southbasin::meta::value::cabling southbasin,prtone,temperature
+SET southbasin::meta::value::cabling::thresholds::range static
+SET southbasin::meta::value::cabling::thresholds::range::static single
+SET southbasin::meta::value::cabling::thresholds::range::static::min 12
+
+SET southbasin::prtone::temperature::thresholds::range static::hourlyTL::dailyTL::monthlyTL
+
+SET southbasin::prtone::temperature::thresholds::range::static single
+SET southbasin::prtone::temperature::thresholds::range::hourlyTL hour
+SET southbasin::prtone::temperature::thresholds::range::dailyTL day
+SET southbasin::prtone::temperature::thresholds::range::monthlyTL month
+
+SET southbasin::prtone::temperature::thresholds::range::static::min 10
+SET southbasin::prtone::temperature::thresholds::range::static::max 120
+
+SET southbasin::prtone::temperature::thresholds::range::hourlyTL::min::2016-08-02T09 10
+SET southbasin::prtone::temperature::thresholds::range::hourlyTL::max::2016-08-02T09 30
+
+SET southbasin::prtone::temperature::thresholds::range::dailyTL::min::2016-08-03 45
+SET southbasin::prtone::temperature::thresholds::range::dailyTL::max::2016-08-03 45
+
+SET southbasin::prtone::temperature::thresholds::range::monthlyTL::min::2016-08 5
+SET southbasin::prtone::temperature::thresholds::range::monthlyTL::max::2016-08 120
+
+SET southbasin::prtone::temperature::thresholds::sigma static
+
+SET southbasin::prtone::temperature::thresholds::sigma::1h::static single
+SET southbasin::prtone::temperature::thresholds::sigma::12h::static single
+SET southbasin::prtone::temperature::thresholds::sigma::24h::static single
+
+SET southbasin::prtone::temperature::thresholds::sigma::1h::static::min 0
+SET southbasin::prtone::temperature::thresholds::sigma::1h::static::max 1
+
+SET southbasin::prtone::temperature::thresholds::sigma::12h::static::min 1
+SET southbasin::prtone::temperature::thresholds::sigma::12h::static::max 2
+
+SET southbasin::prtone::temperature::thresholds::sigma::24h::static::min 2
+SET southbasin::prtone::temperature::thresholds::sigma::24h::static::max 4
+
+SET southbasin::prtone::temperature::thresholds::delta::step static
+SET southbasin::prtone::temperature::thresholds::delta::spike static
+SET southbasin::prtone::temperature::thresholds::delta::step::static single
+SET southbasin::prtone::temperature::thresholds::delta::spike::static single
+
+SET southbasin::prtone::temperature::thresholds::delta::step::static::min 0
+SET southbasin::prtone::temperature::thresholds::delta::step::static::max 10
+
+SET southbasin::prtone::temperature::thresholds::delta::spike::static::min 0
+SET southbasin::prtone::temperature::thresholds::delta::spike::static::max 5

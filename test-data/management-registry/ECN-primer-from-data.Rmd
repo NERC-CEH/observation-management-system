@@ -21,7 +21,9 @@ colnames(ecn_data) = tolower(colnames(ecn_data))
 
 ```
 
-The following document is used to create a basic registry setup to allow for testing with sensor data, before the linked data infrastructure has been created.  The data used can be downloaded from the DOI's in the references section.
+The registry holds all the reference lookup values used within the system.  This can include, for example, the concept URI's for features, procedures, and observable properties, the thresholds used in observation QC checks, and the list of procedures effected by a low battery value at a given feature.
+
+The following document is used to create a basic registry setup to allow for testing with sensor data, before the linked data infrastructure has been created.  Each section refers to a separate logical group of entries:
 
 # ECN Data
 
@@ -33,11 +35,11 @@ site_sensor = ecn_data %>%
   select(sitecode, fieldname) %>%
   distinct()
 
-site_sensor$feature_uri = str_c("http://placeholder.catalogue.ceh.ac.uk/example/",site_sensor$sitecode,"/info")
+site_sensor$feature_uri = str_c("http://placeholder.catalogue.ceh.ac.uk/example/",site_sensor$sitecode)
 
-site_sensor$procedure_uri = str_c("http://placeholder.catalogue.ceh.ac.uk/example/",site_sensor$sitecode,"/",site_sensor$fieldname,"/info")
+site_sensor$procedure_uri = str_c("http://placeholder.catalogue.ceh.ac.uk/example/",site_sensor$sitecode,"/",site_sensor$fieldname)
 
-site_sensor$obsprop_uri = str_c("http://placeholder.catalogue.ceh.ac.uk/example/",site_sensor$sitecode,"/",site_sensor$fieldname,"/example_property/info")
+site_sensor$obsprop_uri = str_c("http://placeholder.catalogue.ceh.ac.uk/example/",site_sensor$sitecode,"/",site_sensor$fieldname,"/example_property")
 
 site_sensor$registry_features = str_c(site_sensor$sitecode,
                                    '::',
@@ -56,6 +58,11 @@ site_sensor$registry_obsprop = str_c(site_sensor$sitecode,
                                    site_sensor$fieldname,
                                    '::observableproperty ',
                                    site_sensor$obsprop_uri)
+
+site_sensor$registry_type = str_c(site_sensor$sitecode,
+                                   '::',
+                                   site_sensor$fieldname,
+                                   '::observationtype numeric')
 ```
 
 The feature entries are as follows:
@@ -75,25 +82,383 @@ The observable property entries are as follows:
 ```{r ecn-print-obsprop}
 cat(site_sensor$registry_obsprop,sep='\n')
 ```
+
+The observation type entries are as follows:
+
+```{r}
+
+cat(site_sensor$registry_typ,sep='\n')
+```
+
 ## Create Feature/Platform Checks
 
-```{r }
-sites = site_sensor %>%
-  select(sitecode) %>%
-  distinct()
+The feature checks are those that are effect procedures located at that feature, for example, a feature not being cleaned or a low battery driving the sensors and logger.  Each site will have the following issues:
 
-site_identity = str_c(sites,
+* Not cleaned
+* Maintenance
+* Low battery
+
+For each of these, a subset of the sensors will be selected to be affected by them
+
+```{r ecn-feature-checks}
+
+identity = c("notcleaned","maintenance")
+value = c("battery")
+
+site_identity = str_c("http://placeholder.catalogue.ceh.ac.uk/example/T04",
                       '::meta::identity ',
-                      'http://definition.uri/notcleaned::http://definition.uri/maintenance')
+                      str_c(identity, collapse="::"))
+
+site_value = str_c("http://placeholder.catalogue.ceh.ac.uk/example/T04",
+                      '::meta::value ',
+                      str_c(value, collapse="::"))
+
+sensors = c(
+  str_c(c(
+    str_c(c("http://placeholder.catalogue.ceh.ac.uk/example/T04",
+          "http://placeholder.catalogue.ceh.ac.uk/example/T04/NETRAD",
+          "http://placeholder.catalogue.ceh.ac.uk/example/T04/NETRAD/example_property"),
+          collapse = ","),
+      str_c(c("http://placeholder.catalogue.ceh.ac.uk/example/T04",
+          "http://placeholder.catalogue.ceh.ac.uk/example/T04/SURWET",
+          "http://placeholder.catalogue.ceh.ac.uk/example/T04/SURWET/example_property"),
+          collapse = ","),
+      str_c(c("http://placeholder.catalogue.ceh.ac.uk/example/T04",
+          "http://placeholder.catalogue.ceh.ac.uk/example/T04/DRYTMP_",
+          "http://placeholder.catalogue.ceh.ac.uk/example/T04/DRYTMP_/example_property"),
+          collapse = ",")),
+    collapse = "::"
+  )
+)
+
+identity_entries = str_c(
+  "http://placeholder.catalogue.ceh.ac.uk/example/T04",
+  "::meta::identity::",
+  identity,
+  " ",
+  sensors
+)
+
+value_entries_one = str_c(
+  "http://placeholder.catalogue.ceh.ac.uk/example/T04",
+  "::meta::value::",
+  value,
+  " ",
+  sensors
+)
+
+value_entries_two = str_c(
+  "http://placeholder.catalogue.ceh.ac.uk/example/T04",
+  "::meta::value::",
+  value,
+  "::thresholds::range static"
+)
+
+value_entries_three = str_c(
+  "http://placeholder.catalogue.ceh.ac.uk/example/T04",
+  "::meta::value::",
+  value,
+  "::thresholds::range::static single"
+)
+
+value_entries_four = str_c(
+  "http://placeholder.catalogue.ceh.ac.uk/example/T04",
+  "::meta::value::",
+  value,
+  "::thresholds::range::static::min 11.5"
+)
+
+value_entries_five = str_c(
+  "http://placeholder.catalogue.ceh.ac.uk/example/T04",
+  "::meta::value::",
+  value,
+  "::thresholds::range::static::max 18.5"
+)
 
 ```
 
-LEVE::meta::identity notcleaned::maintenance
+### Identity based checks
 
-LEVE::meta::identity::notcleaned feat,proc,obsprop::feat,proc,,obsprop::feat,proc,obsprop
-LEVE::meta::identity::maintenance feat,proc,obsprop::feat,proc,obsprop::feat,proc,obsprop
+```{r}
+
+cat(site_identity, sep='\n')
+cat(identity_entries, sep='\n\n')
+```
+
+### Value based checks
+
+
+```{r}
+cat(site_value, sep='\n')
+cat(value_entries_one, sep='\n')
+cat(value_entries_two, sep='\n')
+cat(value_entries_three, sep='\n')
+cat(value_entries_four, sep='\n')
+cat(value_entries_five, sep='\n')
+
+```
 
 ## Create Range/Delta/Sigma Checks
+
+```{r}
+
+# For each sensor, find the mean/sd value across all time, use for min/max generation
+range_data = ecn_data %>%
+  group_by(sitecode, fieldname) %>%
+  summarize(mean_val = round(mean(value)),
+            sd_val = round(sd(value))) %>%
+  mutate(min_val = mean_val - (0.25*sd_val),
+         max_val = mean_val + sd_val)
+  
+
+range_data = range_data %>%
+  mutate(
+    feature_uri = str_c(
+      "http://placeholder.catalogue.ceh.ac.uk/example/",sitecode 
+      ),
+    procedure_uri = str_c(
+      "http://placeholder.catalogue.ceh.ac.uk/example/",sitecode,"/",fieldname
+    ),
+    obsprop_uri = str_c(
+      "http://placeholder.catalogue.ceh.ac.uk/example/",sitecode,"/",fieldname,"/example_property"
+    ),
+    output_one = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::range static", 
+      sep = "::"      
+    ),
+    output_two = str_c(
+      feature_uri,
+      procedure_uri,
+      obsprop_uri,
+      "thresholds::range::static single", 
+      sep = "::"      
+    ),
+    output_three = str_c(
+      feature_uri,
+      procedure_uri,
+      obsprop_uri,
+      "thresholds::range::static::min", 
+      sep = "::"
+    ),
+    output_three = str_c(
+      output_three,
+      " ",
+      min_val
+    ),
+    output_four = str_c(
+      feature_uri,
+      procedure_uri,
+      obsprop_uri,
+      "thresholds::range::static::max", 
+      sep = "::"
+    ),
+    output_four = str_c(
+      output_four,
+      " ",
+      max_val
+    )
+  )
+
+
+
+sigma_data = ecn_data %>%
+  group_by(sitecode, fieldname) %>%
+  summarize(sd_val = round(sd(value))) %>%
+  mutate(sigma_val_1h = (0.2*sd_val)^2,
+         sigma_val_12h = (0.4*sd_val)^2,
+         sigma_val_24h = (0.75*sd_val)^2)
+  
+
+sigma_data = sigma_data %>%
+  mutate(
+      feature_uri = str_c(
+      "http://placeholder.catalogue.ceh.ac.uk/example/",sitecode 
+      ),
+    procedure_uri = str_c(
+      "http://placeholder.catalogue.ceh.ac.uk/example/",sitecode,"/",fieldname
+    ),
+    obsprop_uri = str_c(
+      "http://placeholder.catalogue.ceh.ac.uk/example/",sitecode,"/",fieldname,"/example_property"
+    ),
+    output_one = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::sigma static", 
+      sep = "::"      
+    ),
+    output_two = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::sigma",
+      c("1h","12h","24h"),
+      "static single", 
+      sep = "::"      
+    ),
+    output_three = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::sigma",
+      c("1h","12h","24h"),
+      "static::min",
+      sep = "::"      
+    ),
+    output_three = str_c(
+      output_three," ",sigma_val_1h
+    ),
+    output_four = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::sigma",
+      c("1h","12h","24h"),
+      "static::max",
+      sep = "::"      
+    ),
+    output_four = str_c(
+      output_four, " ",sigma_val_24h
+    )
+  )
+
+
+
+
+
+delta_data = ecn_data %>%
+  group_by(sitecode, fieldname) %>%
+  summarize(sd_val = round(sd(value))) %>%
+  mutate(delta_min = (0.25*sd_val),
+         delta_max = (0.75*sd_val))
+  
+
+delta_data = delta_data %>%
+  mutate(
+      feature_uri = str_c(
+      "http://placeholder.catalogue.ceh.ac.uk/example/",sitecode 
+      ),
+    procedure_uri = str_c(
+      "http://placeholder.catalogue.ceh.ac.uk/example/",sitecode,"/",fieldname
+    ),
+    obsprop_uri = str_c(
+      "http://placeholder.catalogue.ceh.ac.uk/example/",sitecode,"/",fieldname,"/example_property"
+    ),
+    output_one_a = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::delta::step static", 
+      sep = "::"      
+    ),
+    output_one_b = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::delta::spike static", 
+      sep = "::"      
+    ),
+    output_two_a = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::delta::step::static single", 
+      sep = "::"      
+    ),
+    output_two_b = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::delta::spike::static single", 
+      sep = "::"      
+    ),
+    output_three_a = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::delta::step::static::min",
+      sep = "::"      
+    ),
+    output_three_b = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::delta::spike::static::min",
+      sep = "::"      
+    ),
+    output_three_a = str_c(
+      output_three_a," ",delta_min
+    ),
+    output_three_b = str_c(
+      output_three_b," ",delta_min
+    ),
+    output_four_a = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::delta::step::static::max",
+      sep = "::"      
+    ),
+    output_four_b = str_c(
+      feature_uri, 
+      procedure_uri, 
+      obsprop_uri, 
+      "thresholds::delta::spike::static::max",
+      sep = "::"      
+    ),
+    output_four_a = str_c(
+      output_four_a," ",delta_max
+    ),
+    output_four_b = str_c(
+      output_four_b," ",delta_max
+    )
+  )
+
+```
+
+### Range checks
+
+```{r}
+cat(range_data$output_one, sep = "\n")
+cat(range_data$output_two, sep = "\n")
+cat(range_data$output_three, sep = "\n")
+cat(range_data$output_four, sep = "\n")
+
+
+```
+
+### Sigma checks
+
+```{r}
+
+cat(sigma_data$output_one, sep = "\n")
+cat(sigma_data$output_two, sep = "\n")
+cat(sigma_data$output_three, sep = "\n")
+cat(sigma_data$output_four, sep = "\n")
+```
+
+### Delta step checks
+```{r}
+
+cat(delta_data$output_one_a, sep = "\n")
+cat(delta_data$output_two_a, sep = "\n")
+cat(delta_data$output_three_a, sep = "\n")
+cat(delta_data$output_four_a, sep = "\n")
+```
+### Delta spike checks
+```{r}
+
+cat(delta_data$output_one_b, sep = "\n")
+cat(delta_data$output_two_b, sep = "\n")
+cat(delta_data$output_three_b, sep = "\n")
+cat(delta_data$output_four_b, sep = "\n")
+```
+
+
+
 
 
 ## Create the Observations
