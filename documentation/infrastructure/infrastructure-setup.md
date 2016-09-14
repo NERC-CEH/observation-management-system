@@ -65,59 +65,13 @@ UUID=output_of_above_goes_here /mnt/cassandra xfs  defaults,noatime,nobootwait  
 
 #### Securing Ports
 
-By default on the JASMIN hosted machines, ufw is enabled, and allows OpenSSH connections only on port 22.  For internal communication between nodes it is necessary to open up the respective ports each application requires.  As the IP addresses assigned to the nodes are static, this is a feasible approach.
+By default on the JASMIN hosted machines, ufw is enabled, and allows OpenSSH connections on port 22 only; no other ports are open.  For internal communication between nodes it is necessary to open up the respective ports each application requires.  As the IP addresses assigned to the nodes are static, this is a feasible approach.
+
+To further secure the nodes, fail2ban was installed on the SSH bastion machines, the local configuration created as below, and modified to suit.
 
 ```
-# For connections from CEH development group
-sudo ufw allow from CEH_GROUP_IP to EXTERNAL_IP port REQUIRED_NUMBER
-# For connections between internal nodes
-sudo ufw allow from INTERNAL_IP to INTERNAL_IP port REQUIRED_NUMBER
-```
-
-##### Cassandra
-
-For Cassandra to support internal communication the following ports need to be opened up on the internal IP addresses:
-```
-# 7000: intra-node communication
-sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 7000
-sudo ufw allow from 192.168.3.4 to 192.168.3.2 port 7000
-
-sudo ufw allow from 192.168.3.2 to 192.168.3.3 port 7000
-sudo ufw allow from 192.168.3.4 to 192.168.3.3 port 7000
-
-sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 7000
-sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 7000
-
-# 7001: TLS intra-node communication
-sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 7001
-sudo ufw allow from 192.168.3.4 to 192.168.3.2 port 7001
-
-sudo ufw allow from 192.168.3.2 to 192.168.3.3 port 7001
-sudo ufw allow from 192.168.3.4 to 192.168.3.3 port 7001
-
-sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 7001
-sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 7001
-
-# 7199: JMX
-sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 7199
-sudo ufw allow from 192.168.3.4 to 192.168.3.2 port 7199
-
-sudo ufw allow from 192.168.3.2 to 192.168.3.3 port 7199
-sudo ufw allow from 192.168.3.4 to 192.168.3.3 port 7199
-
-sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 7199
-sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 7199
-
-# 9042: CQL
-sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 9042
-sudo ufw allow from 192.168.3.4 to 192.168.3.2 port 9042
-
-sudo ufw allow from 192.168.3.2 to 192.168.3.3 port 9042
-sudo ufw allow from 192.168.3.4 to 192.168.3.3 port 9042
-
-sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 9042
-sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 9042
-
+sudo apt-get install fail2ban
+sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 ```
 
 #### Installing Docker
@@ -176,33 +130,87 @@ When setting up the docker container there are a number of environment variables
 
 Because the flag `--net=host` is used, the port flags (e.g. -p 7000:7000 -p 9042:9042 -p 7199:7199 -p 7001:7001) are unnecessary as the ports are mapped directly to either the listen_host, 0.0.0.0, or the local 127.0.0.1 as applicable.
 
+The data directory in the Docker container is mounted to the `/mnt/cassandra` host directory.
+
 ```
-docker run --name cassandra_node_one -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.2 -e CASSANDRA_BROADCAST_ADDRESS=192.168.3.2 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -v /cassandra:/var/lib/cassandra --net=host cassandra:3.7
+docker run --name cassandra_node_one -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.2 -e CASSANDRA_BROADCAST_ADDRESS=192.168.3.2 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -v /mnt/cassandra:/var/lib/cassandra --net=host cassandra:3.7
 
-docker run --name cassandra_node_two -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.3 -e CASSANDRA_BROADCAST_ADDRESS=192.168.3.3 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -v /cassandra:/var/lib/cassandra --net=host cassandra:3.7
+docker run --name cassandra_node_two -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.3 -e CASSANDRA_BROADCAST_ADDRESS=192.168.3.3 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -v /mnt/cassandra:/var/lib/cassandra --net=host cassandra:3.7
 
-docker run --name cassandra_node_three -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.4 -e CASSANDRA_BROADCAST_ADDRESS=192.168.3.4 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -v /cassandra:/var/lib/cassandra --net=host cassandra:3.7
+docker run --name cassandra_node_three -d  -e CASSANDRA_LISTEN_ADDRESS=192.168.3.4 -e CASSANDRA_BROADCAST_ADDRESS=192.168.3.4 -e CASSANDRA_START_RPC=false -e CASSANDRA_SEEDS=192.168.3.2,192.168.3.3 -e CASSANDRA_CLUSTER_NAME=ObservationStore -e CASSANDRA_DC=JASMIN -e CASSANDRA_RACK=default -e CASSANDRA_ENDPOINT_SNITCH=SimpleSnitch -v /mnt/cassandra:/var/lib/cassandra --net=host cassandra:3.7
+```
+
+To support internal communication the following ports need to be opened up on the internal IP addresses:
+```
+# 7000: intra-node communication
+sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 7000
+sudo ufw allow from 192.168.3.4 to 192.168.3.2 port 7000
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.3 port 7000
+sudo ufw allow from 192.168.3.4 to 192.168.3.3 port 7000
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 7000
+sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 7000
+
+# 7001: TLS intra-node communication
+sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 7001
+sudo ufw allow from 192.168.3.4 to 192.168.3.2 port 7001
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.3 port 7001
+sudo ufw allow from 192.168.3.4 to 192.168.3.3 port 7001
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 7001
+sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 7001
+
+# 7199: JMX
+sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 7199
+sudo ufw allow from 192.168.3.4 to 192.168.3.2 port 7199
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.3 port 7199
+sudo ufw allow from 192.168.3.4 to 192.168.3.3 port 7199
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 7199
+sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 7199
+
+# 9042: CQL
+sudo ufw allow from 192.168.3.3 to 192.168.3.2 port 9042
+sudo ufw allow from 192.168.3.4 to 192.168.3.2 port 9042
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.3 port 9042
+sudo ufw allow from 192.168.3.4 to 192.168.3.3 port 9042
+
+sudo ufw allow from 192.168.3.2 to 192.168.3.4 port 9042
+sudo ufw allow from 192.168.3.3 to 192.168.3.4 port 9042
+
 ```
 
 Connections from the local machine are made using ssh:
 
 ```
 ssh -L local_socket:host:hostport
-ssh -L 9042:127.0.0.1:9042 casone
-ssh -L 7199:127.0.0.1:7199 casone
+ssh -L 9042:192.168.3.2:9042 casone
+ssh -L 7199:192.168.3.2:7199 casone
 ```
 
+As an interim measure until a reliable Flink to Cassandra Scala data sink is supported (issues [here](https://issues.apache.org/jira/browse/FLINK-4497), [here](https://issues.apache.org/jira/browse/FLINK-4177), and [here](https://issues.apache.org/jira/browse/FLINK-4498)), a Python daemon client has been created to bridge the gap between the Kafka persistence queues and the Cassandra database.  This runs on the Cassandra node to allow connection without cause for authentication to the cluster, with the code found in the `observation-processing` resources directory.
+
 #### Kafka
+
+The Kafka installation has both zookeeper and kafka based logs to keep track of, and those directories are added to the host as follows:
 
 ```
 mkdir /mnt/kafka/kafka_logs
 mkdir /mnt/kafka/zookeeper_logs
+```
 
+The container uses host networking, but still takes the advertised host and port parameters to configure internal settings correctly.
+
+```
 docker run --name kafka_node_one -d --env ADVERTISED_HOST=192.168.3.5 --env ADVERTISED_PORT=9092 -v /mnt/kafka/kafka_logs:/tmp/kafka-logs -v /mnt/kafka/zookeeper_logs:/tmp/zookeeper --net=host dbciar/docker-kafka
+```
 
-ssh -L 9092:127.0.0.1:9092 kafka
-ssh -L 2181:127.0.0.1:2181 kafka
-
+Once created, if the binaries have been downloaded to a local location, commands like the following can be used to create topics:
+```
 ./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic raw-observations
 
 ./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic raw-observations-malformed
@@ -210,27 +218,47 @@ ssh -L 2181:127.0.0.1:2181 kafka
 ./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic observation-persist
 
 ./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic observation-qc-logic
-
 ```
 
+The connections below allow the Apache Flink node, and the Apache Cassandra node to connect respectively.
 
 ```
+# Apache Flink
 sudo ufw allow from 192.168.3.6 to 192.168.3.5 port 2181
 sudo ufw allow from 192.168.3.6 to 192.168.3.5 port 9092
+
+# Apache Cassandra
+sudo ufw allow from 192.168.3.2 to 192.168.3.5 port 2181
+sudo ufw allow from 192.168.3.2 to 192.168.3.5 port 9092
+```
+
+Finally, to connect transparently from the local host, the following connections can be made:
+
+```
+ssh -L 9092:127.0.0.1:9092 kafka
+ssh -L 2181:127.0.0.1:2181 kafka
 ```
 
 #### Redis
 
+The Redis container runs as is with only the --net parameter being set:
 ```
 docker run --name redis_registry -d --net=host redis
+```
 
-ssh -L 6379:127.0.0.1:6379 kafka
-
+To allow Apache Flink to connect the host port must be opened up:
+```
 sudo ufw allow from 192.168.3.6 to 192.168.3.5 port 6379
 ```
 
-With the redis example text file (having modified redis-mass.js `#!/usr/bin/env node` to `#!/usr/bin/env nodejs`
+To connect from the local host the following is used:
+```
+ssh -L 6379:127.0.0.1:6379 kafka
+```
 
+For loading bulk data, the redis-mass project is used (though on Ubuntu the redis-mass.js file needs the shell changed: `#!/usr/bin/env node` to `#!/usr/bin/env nodejs`
+
+Once this change is made, bulk loading can be performed as follows using a file, PrimerData.txt, that has a number of "SET KEY VALUE" entries.
 
 ```
 ./redis-mass/lib/redis-mass.js PrimerData.txt | /usr/share/redis/src/redis-cli --pipe
@@ -240,5 +268,7 @@ With the redis example text file (having modified redis-mass.js `#!/usr/bin/env 
 
 TODO: dockerise the local execution or cluster, depending on setup.
 
+For viewing the GUI interface in the local browser, the following connection must be made:
+```
 ssh -L 8081:127.0.0.1:8081 flink
-
+```
