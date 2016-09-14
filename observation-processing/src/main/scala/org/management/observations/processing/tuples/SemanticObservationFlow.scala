@@ -1,5 +1,11 @@
 package org.management.observations.processing.tuples
 
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDateTime, ZoneOffset}
+
+import com.redis.RedisClient
+import org.apache.flink.util.Collector
+
 /**
   * SemanticObservationFlow
   *
@@ -54,5 +60,6 @@ trait SemanticObservationFlow {
       eventTimeStart,
       eventTimeEnd)
   }
+
 }
 

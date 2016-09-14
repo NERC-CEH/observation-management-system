@@ -24,12 +24,13 @@ case class QCOutcomeQualitative(feature: String,
                                 qualifier: String,
                                 qualitative: String) extends BaseSemanticRecord {
 
-  override def toString: String = feature + "," +
-    procedure + "," +
-    observableproperty + "," +
-    year.toString +"," +
-    month.toString + "," +
-    phenomenontimestart.toString + "," +
-    qualifier + "," +
-    qualitative
+  override def toString: String = feature + "::" +
+    procedure + "::" +
+    observableproperty + "::" +
+    year.toString +"::" +
+    month.toString + "::" +
+    phenomenontimestart.toString + "::" +
+    qualifier + "::" +
+    qualitative + "::" +
+    "Auto-generated."
 }

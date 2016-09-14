@@ -3,8 +3,8 @@ package org.management.observations.processing.tuples
 /**
   * SemanticObservation
   *
-  * @param procedure the sensor that observed the value
   * @param feature the site the observation was generated at, assumed static
+  * @param procedure the sensor that observed the value
   * @param observableproperty the property being observed
   * @param year the year the observation was recorded in, the initial year if spans multiple years
   * @param month the month the observation was recorded in, the initial month if spans multiple months
@@ -25,8 +25,8 @@ package org.management.observations.processing.tuples
   * @param parameters any additional free-form parameters
   */
 
-case class SemanticObservation(procedure: String,
-                               feature: String,
+case class SemanticObservation(feature: String,
+                               procedure: String,
                                observableproperty: String,
                                year: Int,
                                month: Int,
@@ -45,39 +45,42 @@ case class SemanticObservation(procedure: String,
                                parameters: Option[scala.collection.mutable.Map[String,String]])
   extends BaseSemanticRecord {
 
-    override def toString: String = procedure +
-      ',' +
-      feature +
-      ',' +
-      observableproperty +
-      ',' +
-      year.toString +
-      ',' +
-      month.toString +
-      ',' +
-      phenomenontimestart.toString +
-      ',' +
-      phenomenontimeend.toString +
-      ',' +
-      observationType +
-      ',' +
-      categoricalObservation +
-      ',' +
-      numericalObservation +
-      ',' +
-      quality.toString +
-      ',' +
-      accuracy.toString +
-      ',' +
-      status +
-      ',' +
-      processing +
-      ',' +
-      uncertml +
-      ',' +
-      comment +
-      ',' +
-      location +
-      ',' +
-      parameters.toString
+    override def toString: String = {
+
+        feature +
+        "::" +
+        procedure +
+        "::" +
+        observableproperty +
+        "::" +
+        year.toString +
+        "::" +
+        month.toString +
+        "::" +
+        phenomenontimestart.toString +
+        "::" +
+        phenomenontimeend.toString +
+        "::" +
+        {
+            if(observationType == "numeric" || observationType == "count") numericalObservation.get
+            else categoricalObservation.get
+        } +
+        "::" +
+        quality.toString +
+        "::" +
+        accuracy.toString +
+        "::" +
+        status +
+        "::" +
+        processing +
+        "::" +
+        uncertml.getOrElse("NA") +
+        "::" +
+        comment +
+        "::" +
+        location.getOrElse("NA") +
+        "::" + {
+        if (parameters.isDefined) parameters.get.mkString(",") else "NA"
+    }
+}
 }
