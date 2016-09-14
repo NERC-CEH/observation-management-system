@@ -3,6 +3,9 @@ package org.management.observations.processing.bolts.qc.block.threshold
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
 import org.apache.flink.api.java.utils.ParameterTool
+import org.management.observations.processing.ProjectConfiguration
+
+import scala.collection.JavaConversions._
 
 // The function being extended and related
 import org.apache.flink.streaming.api.scala.function.RichWindowFunction
@@ -22,9 +25,6 @@ import org.management.observations.processing.tuples.{QCOutcomeQuantitative, Sem
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, ZoneOffset}
 
-// System KVP properties
-import org.management.observations.processing.ProjectConfiguration
-import scala.collection.JavaConversions._
 
 /**
   * QCBlockThresholdDeltaStepCheck
@@ -46,6 +46,7 @@ import scala.collection.JavaConversions._
   */
 class QCBlockThresholdDeltaStepCheck extends RichWindowFunction[SemanticObservation, QCOutcomeQuantitative, Tuple, GlobalWindow] with SemanticObservationFlow{
 
+  // Create the connection to the registry
   @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
   @transient var redisCon: RedisClient = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
 
@@ -62,30 +63,38 @@ class QCBlockThresholdDeltaStepCheck extends RichWindowFunction[SemanticObservat
     val observableproperty: String = key.getField(2).toString
     val testKey: String = feature + "::" + procedure + "::" + observableproperty +"::thresholds::delta::step"
 
-    /**
-      * For two observation wide windows, identify the absolute
-      * delta value, and compare to a threshold
-      */
-    if(input.size == 2){
 
-      val observationDelta: Double = math.abs(input.map(_.numericalObservation.get).reduce(_-_))
-
-      // Using the stream meta-data and window size category, lookup the threshold tests
-      val deltaTests: Option[String] = try {
-        this.redisCon.get(testKey)
-      }catch {
-        case e: Exception => None
-      }
-
-      // Check that a value was returned from the registry, and if so
-      // split on ':', and iterate over each item
-      if(deltaTests.isDefined) {
-        val individualTests: Array[String] = deltaTests.get.split("::")
-
-        // Call the test iterator
-        processTest(individualTests, input, observationDelta, input.head.phenomenontimestart)
+    // The check for > 2 is necessary, as the window can trigger with only one
+    val observationDelta: Option[Double] = {
+      if(input.size == 2){
+        Some(math.abs(input.map(_.numericalObservation.get).reduce(_-_)))
+      }else if(input.size > 2){
+        val minVal = input.min(Ordering.by((s:SemanticObservation) => s.phenomenontimestart))
+        val maxVal = input.max(Ordering.by((s:SemanticObservation) => s.phenomenontimestart))
+        Some(math.abs(minVal.numericalObservation.get - maxVal.numericalObservation.get))
+      }else{
+        None
       }
     }
+
+
+
+    // Using the stream meta-data and window size category, lookup the threshold tests
+    val deltaTests: Option[String] = try {
+      this.redisCon.get(testKey)
+    }catch {
+      case e: Exception => None
+    }
+
+    // Check that a value was returned from the registry, and if so
+    // split on ':', and iterate over each item
+    if(deltaTests.isDefined && observationDelta.isDefined) {
+      val individualTests: Array[String] = deltaTests.get.split("::")
+
+      // Call the test iterator
+      processTest(individualTests, input, observationDelta.get, input.head.phenomenontimestart)
+    }
+
 
     /**
       * This function takes the list of tests to be applied, and recursively iterates
@@ -193,8 +202,8 @@ class QCBlockThresholdDeltaStepCheck extends RichWindowFunction[SemanticObservat
         if(minCompareVal.isDefined) {
 
           val quantitativeVal: Double = minCompareVal.get.toDouble  - observationValue
-          val testId: String = "http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/" + test + "/min"
-          val outcome: String = if(quantitativeVal > 0) "fail" else "pass"
+          val testId: String = params.get("qc-threshold-delta-step-prefix") + test + "/min"
+          val outcome: String = if(quantitativeVal > 0) params.get("qc-outcome-fail") else params.get("qc-outcome-pass")
 
           observations.foreach(x =>
             out.collect(createQCOutcomeQuantitative(
@@ -209,8 +218,8 @@ class QCBlockThresholdDeltaStepCheck extends RichWindowFunction[SemanticObservat
         if(maxCompareVal.isDefined) {
 
           val quantitativeVal: Double = observationValue - maxCompareVal.get.toDouble
-          val testId: String = "http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/" + test + "/max"
-          val outcome: String = if(quantitativeVal > 0) "fail" else "pass"
+          val testId: String = params.get("qc-threshold-delta-step-prefix") + test + "/max"
+          val outcome: String = if(quantitativeVal > 0) params.get("qc-outcome-fail") else params.get("qc-outcome-pass")
 
           observations.foreach(x =>
             out.collect(createQCOutcomeQuantitative(

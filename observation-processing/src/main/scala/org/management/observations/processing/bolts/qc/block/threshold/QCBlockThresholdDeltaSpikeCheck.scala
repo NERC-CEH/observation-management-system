@@ -202,8 +202,8 @@ class QCBlockThresholdDeltaSpikeCheck extends RichWindowFunction[SemanticObserva
         if(minCompareVal.isDefined) {
 
           val quantitativeVal: Double = minCompareVal.get.toDouble  - observationValue
-          val testId: String = "http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/" + test + "/min"
-          val outcome: String = if(quantitativeVal > 0) "fail" else "pass"
+          val testId: String = params.get("qc-threshold-delta-spike-prefix") + test + "/min"
+          val outcome: String = if(quantitativeVal > 0) params.get("qc-outcome-fail") else params.get("qc-outcome-pass")
 
           observations.foreach(x =>
             out.collect(createQCOutcomeQuantitative(
@@ -218,8 +218,8 @@ class QCBlockThresholdDeltaSpikeCheck extends RichWindowFunction[SemanticObserva
         if(maxCompareVal.isDefined) {
 
           val quantitativeVal: Double = observationValue - maxCompareVal.get.toDouble
-          val testId: String = "http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/" + test + "/max"
-          val outcome: String = if(quantitativeVal > 0) "fail" else "pass"
+          val testId: String = params.get("qc-threshold-delta-spike-prefix") + test + "/max"
+          val outcome: String = if(quantitativeVal > 0) params.get("qc-outcome-fail") else params.get("qc-outcome-pass")
 
           observations.foreach(x =>
             out.collect(createQCOutcomeQuantitative(
