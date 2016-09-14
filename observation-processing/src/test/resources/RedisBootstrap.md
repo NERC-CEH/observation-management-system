@@ -8,6 +8,7 @@ Data necessary for the SemanticStamp based suite, where the code looks up the no
 SET SBAS::PRT1::feature southbasin
 SET SBAS::PRT1::procedure prtone
 SET SBAS::PRT1::observableproperty temperature
+SET SBAS::PRT1::observationtype numeric
 
 SET SBAS::PRT2::feature southbasin
 SET SBAS::PRT2::procedure prttwo
