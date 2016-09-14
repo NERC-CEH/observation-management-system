@@ -18,8 +18,8 @@ AND DURABLE_WRITES = true;
 -- ---------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS observation.observations_numeric(
-procedure text,
 feature text,
+procedure text,
 observableproperty text,
 year int,
 month int,
@@ -36,7 +36,7 @@ location text,
 parameters text,
 PRIMARY KEY ((procedure, feature, observableproperty, year, month), phenomenontimestart)
 )
-WITH CLUSTERING ORDER BY (phenomenontimestart)
+WITH CLUSTERING ORDER BY (phenomenontimestart ASC)
 -- Compaction and bloom filter settings go together.  LeveledCompaction was chosen
 --  following on from the blog post below that seems to fit LeveledCompaction to our
 --  use-case: http://www.datastax.com/dev/blog/when-to-use-leveled-compaction
@@ -60,8 +60,8 @@ AND comment = 'The main table for storing observation data, holding the observed
 -- ---------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS observation.forecast_observations(
-procedure text,
 feature text,
+procedure text,
 observableproperty text,
 year int,
 month int,
@@ -80,7 +80,7 @@ uncertml text,
 comment text,
 PRIMARY KEY ((procedure, feature, observableproperty, year, month), phenomenontimestart)
 )
-WITH CLUSTERING ORDER BY (phenomenontimestart)
+WITH CLUSTERING ORDER BY (phenomenontimestart ASC)
 -- Compaction and bloom filter settings go together.  LeveledCompaction was chosen
 --  following on from the blog post below that seems to fit LeveledCompaction to our
 --  use-case: http://www.datastax.com/dev/blog/when-to-use-leveled-compaction
@@ -100,22 +100,54 @@ AND comment = 'The main table for storing forecast observation data, holding the
 
 
 
--- Create the observation QC information table
+-- Create the observation QC information table for qualitative results
 -- ---------------------------------------------------------
-CREATE TABLE IF NOT EXISTS observation.observations_qc(
-procedure text,
+CREATE TABLE IF NOT EXISTS observation.observations_qc_qualitative(
 feature text,
+procedure text,
 observableproperty text,
 year int,
 month int,
 phenomenontimestart timestamp,
 qualifier text,
-qualifierqualitativevalue text,
-qualifierquantitativevalue decimal,
+qualifiervalue text,
 comment text,
 PRIMARY KEY ((procedure, feature, observableproperty, year, month), phenomenontimestart, qualifier)
 )
-WITH CLUSTERING ORDER BY (phenomenontimestart)
+WITH CLUSTERING ORDER BY (phenomenontimestart ASC)
+-- Compaction and bloom filter settings go together.  LeveledCompaction was chosen
+--  following on from the blog post below that seems to fit LeveledCompaction to our
+--  use-case: http://www.datastax.com/dev/blog/when-to-use-leveled-compaction
+--  The bloom filter is set to 0.1 as per the datastax instructions here:
+--  https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tabProp.html
+AND COMPACTION = {'class' : 'LeveledCompactionStrategy',
+                'tombstone_compaction_interval' : 86400 ,
+                'tombstone_threshold' : 0.2}
+AND bloom_filter_fp_chance = 0.1
+
+-- Cache all row keys for lookup, and cache 100 rows per partition (this parameter needs performance testing)
+AND caching = {'keys' : 'ALL', 'rows_per_partition' : '100'}
+
+-- Compression is disabled
+AND COMPRESSION = {'sstable_compression' : ''}
+AND comment = 'The QC table holds the detailed information regarding check outcomes for observations held in the "observations" table.  For each observation there is a qualifier holding the URI of the check, the outcome, and a comment regarding the QC output.';
+
+
+-- Create the observation QC information table for quantitative results
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS observation.observations_qc_quantitative(
+feature text,
+procedure text,
+observableproperty text,
+year int,
+month int,
+phenomenontimestart timestamp,
+qualifier text,
+qualifiervevalue decimal,
+comment text,
+PRIMARY KEY ((procedure, feature, observableproperty, year, month), phenomenontimestart, qualifier)
+)
+WITH CLUSTERING ORDER BY (phenomenontimestart ASC)
 -- Compaction and bloom filter settings go together.  LeveledCompaction was chosen
 --  following on from the blog post below that seems to fit LeveledCompaction to our
 --  use-case: http://www.datastax.com/dev/blog/when-to-use-leveled-compaction
