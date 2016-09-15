@@ -9,7 +9,8 @@ object ProjectConfiguration {
     /**
       * Redis Server
       */
-    ("redis-conn-ip","192.168.3.5"),
+//    ("redis-conn-ip","192.168.3.5"),
+    ("redis-conn-ip","localhost"),
     ("redis-conn-port","6379"),
 
     /**
@@ -32,6 +33,10 @@ object ProjectConfiguration {
     ("kafka-ingest-qc-logic-queue","observation-qc-logic"),
     ("kafka-produce-qc-quantitative","qc-quantitative-persist"),
     ("kafka-produce-qc-qualitative","qc-qualitative-persist"),
+    ("kafka-produce-routing-assignment","observation-routing"),
+
+    // Observation Route
+    ("kafka-ingest-routing-assignment","observation-routing"),
     ("kafka-produce-qc-threshold","observation-qc-threshold"),
 
     // QCBlockMeta
@@ -62,7 +67,24 @@ object ProjectConfiguration {
     ("qc-threshold-delta-spike-prefix","http://placeholder.catalogue.ceh.ac.uk/qc/delta/spike/"),
     ("qc-threshold-delta-step-prefix","http://placeholder.catalogue.ceh.ac.uk/qc/delta/step/"),
     ("qc-threshold-sigma-prefix","http://placeholder.catalogue.ceh.ac.uk/qc/sigma/"),
-    ("qc-threshold-range-prefix","http://placeholder.catalogue.ceh.ac.uk/qc/range/")
+    ("qc-threshold-range-prefix","http://placeholder.catalogue.ceh.ac.uk/qc/range/"),
+
+    /**
+      * Observation Route
+      *
+      * For entries starting with 'routing-', this is the lookup to tell
+      * the code what to look for for each block, e.g.
+      *
+      * Registry job value = threshold, refers to the QC Block Threshold
+      * Registry model value = sigma, refers to the sigma model within named job
+      */
+    ("routing-qc-block-threshold","threshold"),
+    ("routing-qc-block-threshold-delta","http://placeholder.catalogue.ceh.ac.uk/qc/delta"),
+    ("routing-qc-block-threshold-sigma","http://placeholder.catalogue.ceh.ac.uk/qc/sigma"),
+    ("routing-qc-block-threshold-range","http://placeholder.catalogue.ceh.ac.uk/qc/range"),
+
+    ("routing-derived-lake-analyzer","http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer")
+
 
 
   )

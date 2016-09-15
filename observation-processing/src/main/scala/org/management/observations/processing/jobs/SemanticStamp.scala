@@ -87,16 +87,18 @@ object SemanticStamp{
     )
 
     /**
-      * Convert RawObservations to SemanticObservations, and write to the
-      * queue for persistence
+      * Convert RawObservations to SemanticObservations
+      */
+    val semanticStream: DataStream[SemanticObservation] = rawStream
+      .filter(_.parseOK == true)
+      .map(new RawToSemanticObservation())
+
+    /**
+      * Write the SemanticObservations to the persistence queue.
+      * TODO: When Cassandra Scala connector mature, replace below.
       */
     val semanticType: TypeInformation[SemanticObservation] = TypeExtractor.createTypeInfo(classOf[SemanticObservation])
     val semanticTypeSchema = new TypeInformationSerializationSchema[SemanticObservation](semanticType, new ExecutionConfig())
-
-    val semanticStream: DataStream[SemanticObservation] = rawStream
-      .filter(_.parseOK == true)
-      .filter(_.observationType == "numeric")
-      .map(new RawToSemanticObservation())
 
     semanticStream
       .map(_.toString)

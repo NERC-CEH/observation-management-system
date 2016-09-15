@@ -155,17 +155,15 @@ object QCBlockLogic extends SemanticObservationFlow{
       )
 
     /**
-      * Send all the observations that have a value to QC Block Threshold,
-      * all null valued observations are dropped at this stage.
-      *
-      * Out of order observations are dropped silently in further processing
-      * blocks where the timestamp is used, by the ascendingTimestamp function.
+      * Send all the observations to the ObservationRoute job, which provides
+      * the metadata necessary for each observation to have the correct QC
+      * checks applied, and to be included in the calculation of derived data.
       */
     observationStream
       .filter(_.numericalObservation.isDefined)
       .addSink(new FlinkKafkaProducer09[SemanticObservation](
         params.get("kafka-producer"),
-        params.get("kafka-produce-qc-threshold"),
+        params.get("kafka-produce-routing-assignment"),
         semanticTypeSchema)
       )
 

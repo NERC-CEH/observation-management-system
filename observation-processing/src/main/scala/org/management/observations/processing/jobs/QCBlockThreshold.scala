@@ -3,6 +3,7 @@ package org.management.observations.processing.jobs
 // Execution environment
 import org.apache.flink.api.common.ExecutionConfig
 import org.apache.flink.api.java.utils.ParameterTool
+import org.management.observations.processing.tuples.RoutedObservation
 
 // Used to provide serializer/deserializer information for user defined objects
 // to place onto the Kafka queue
@@ -102,14 +103,14 @@ object QCBlockThreshold {
     val kafkaProp = new Properties()
     kafkaProp.setProperty("bootstrap.servers", params.get("kafka-bootstrap"));
 
-    val semanticInfo: TypeInformation[SemanticObservation] = TypeExtractor.createTypeInfo(classOf[SemanticObservation])
-    val semanticSchema = new TypeInformationSerializationSchema[SemanticObservation](semanticInfo, new ExecutionConfig())
+    val observationInfo: TypeInformation[RoutedObservation] = TypeExtractor.createTypeInfo(classOf[RoutedObservation])
+    val observationSchema = new TypeInformationSerializationSchema[RoutedObservation](observationInfo, new ExecutionConfig())
 
     // Read semantic observations into the stream
-    val observationStream: DataStream[SemanticObservation] = env
-      .addSource(new FlinkKafkaConsumer09[SemanticObservation](
+    val observationStream: DataStream[RoutedObservation] = env
+      .addSource(new FlinkKafkaConsumer09[RoutedObservation](
         params.get("kafka-ingest-qc-threshold"),
-        semanticSchema,
+        observationSchema,
         kafkaProp)
       )
 
@@ -120,6 +121,8 @@ object QCBlockThreshold {
       * but may produce zero to many QC outcomes
       */
     val rangeStream: DataStream[QCOutcomeQuantitative] = observationStream
+      .filter(_.routes.map(_.model).contains(params.get("routing-qc-block-threshold-range")))
+      .map(_.observation)
       .flatMap(new QCBlockThresholdRangeCheck())
 
     val quantitativeType: TypeInformation[QCOutcomeQuantitative] = TypeExtractor.createTypeInfo(classOf[QCOutcomeQuantitative])
@@ -141,20 +144,22 @@ object QCBlockThreshold {
       */
     // TODO: move to iterative fold then apply technique
 
-    val observationTimeStream: DataStream[SemanticObservation] = observationStream
+    val sigmaObservationTimeStream: DataStream[SemanticObservation] = observationStream
+      .filter(_.routes.map(_.model).contains(params.get("routing-qc-block-threshold-sigma")))
+      .map(_.observation)
       .assignAscendingTimestamps(_.phenomenontimestart)
 
-    val sigmaConcurrentStream1h: DataStream[QCOutcomeQuantitative] = observationTimeStream
+    val sigmaConcurrentStream1h: DataStream[QCOutcomeQuantitative] = sigmaObservationTimeStream
         .keyBy("feature","procedure","observableproperty")
         .timeWindow(Time.hours(1))
         .apply(new QCBlockThresholdSigmaCheck())
 
-    val sigmaConcurrentStream12h: DataStream[QCOutcomeQuantitative] = observationTimeStream
+    val sigmaConcurrentStream12h: DataStream[QCOutcomeQuantitative] = sigmaObservationTimeStream
       .keyBy("feature","procedure","observableproperty")
       .timeWindow(Time.hours(12))
       .apply(new QCBlockThresholdSigmaCheck())
 
-    val sigmaConcurrentStream24h: DataStream[QCOutcomeQuantitative] = observationTimeStream
+    val sigmaConcurrentStream24h: DataStream[QCOutcomeQuantitative] = sigmaObservationTimeStream
       .keyBy("feature","procedure","observableproperty")
       .timeWindow(Time.hours(24))
       .apply(new QCBlockThresholdSigmaCheck())
@@ -177,12 +182,18 @@ object QCBlockThreshold {
       * compared to rate of change thresholds to look for unrealistic
       * change.
       */
-    val deltaStep: DataStream[QCOutcomeQuantitative] = observationStream
+
+    val deltaObservationTimeStream: DataStream[SemanticObservation] = observationStream
+      .filter(_.routes.map(_.model).contains(params.get("routing-qc-block-threshold-delta")))
+      .map(_.observation)
+      .assignAscendingTimestamps(_.phenomenontimestart)
+
+    val deltaStep: DataStream[QCOutcomeQuantitative] = deltaObservationTimeStream
       .keyBy("feature","procedure","observableproperty")
       .countWindow(2,1)
       .apply(new QCBlockThresholdDeltaStepCheck())
 
-    val deltaSpike: DataStream[QCOutcomeQuantitative] = observationStream
+    val deltaSpike: DataStream[QCOutcomeQuantitative] = deltaObservationTimeStream
       .keyBy("feature","procedure","observableproperty")
       .countWindow(3,1)
       .apply(new QCBlockThresholdDeltaSpikeCheck())
