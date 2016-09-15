@@ -22,7 +22,7 @@ class KafkaObservationPersist(step.StepDaemon):
         for msg in consumer:
             split_msg = string.split(msg.value,"::")
 
-            if(len(split_msg) == 16):
+            if(len(split_msg) == 16)    :
 
                 session.execute(
                     """

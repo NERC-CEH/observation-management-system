@@ -143,7 +143,7 @@ year int,
 month int,
 phenomenontimestart timestamp,
 qualifier text,
-qualifiervevalue decimal,
+qualifiervalue decimal,
 comment text,
 PRIMARY KEY ((procedure, feature, observableproperty, year, month), phenomenontimestart, qualifier)
 )
