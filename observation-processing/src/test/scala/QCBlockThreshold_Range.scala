@@ -1,9 +1,13 @@
 // Unit testing libraries
+import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer09
 import org.apache.flink.streaming.util.serialization.SimpleStringSchema
 import org.scalatest.FunSuite
 import org.junit.runner.RunWith
+import org.management.observations.processing.ProjectConfiguration
 import org.management.observations.processing.bolts.qc.block.threshold.QCBlockThresholdRangeCheck
+import org.management.observations.processing.bolts.routing.InjectRoutingInfo
+import org.management.observations.processing.tuples.RoutedObservation
 import org.scalatest.junit.JUnitRunner
 
 // Core Flink related libraries
@@ -20,6 +24,8 @@ import org.management.observations.processing.bolts.qc.block.meta.QCBlockMetaVal
 import org.management.observations.processing.bolts.transform.{RawCSVToObservation, RawToSemanticObservation}
 import org.management.observations.processing.tuples.{MetaOutcomeQuantitative, QCOutcomeQuantitative}
 
+import scala.collection.JavaConversions._
+
 // Used to read in the CSVObservation.csv file with the observation data
 import scala.io.Source._
 import scala.collection.JavaConverters.asScalaIteratorConverter
@@ -35,17 +41,23 @@ class QCBlockThreshold_Range extends FunSuite {
     val env = StreamExecutionEnvironment.createLocalEnvironment(1)
     env.setParallelism(1)
 
+    // Read the parameter configuration file
+    val params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+
     // Read in the test data
-    val observationStream: DataStream[SemanticObservation] = env.fromCollection(
+    val observationStream: DataStream[RoutedObservation] = env.fromCollection(
       fromFile("/home/dciar86/GitHub/observation-management-system/observation-processing/src/test/resources/CSVObservations_QCBlock_Threshold_Range.csv")
         .getLines().toSeq
     )
       .map(new RawCSVToObservation)
       .filter(_.parseOK == true)
       .map(new RawToSemanticObservation)
+      .flatMap(new InjectRoutingInfo)
 
     // Perform the bolt
     val rangeStream: DataStream[QCOutcomeQuantitative] = observationStream
+      .filter(_.routes.map(_.model).contains(params.get("routing-qc-block-threshold-range")))
+      .map(_.observation)
       .flatMap(new QCBlockThresholdRangeCheck())
 
     // Collect and return the program output

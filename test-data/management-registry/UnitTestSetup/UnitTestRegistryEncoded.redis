@@ -50,6 +50,13 @@ temperature
 *3
 $3
 SET
+$40
+southbasin::prtone::temperature::routing
+$184
+threshold,http://placeholder.catalogue.ceh.ac.uk/qc/range,na::threshold,http://placeholder.catalogue.ceh.ac.uk/qc/sigma,na::threshold,http://placeholder.catalogue.ceh.ac.uk/qc/delta,na
+*3
+$3
+SET
 $48
 southbasin::prtone::temperature::intendedspacing
 $6

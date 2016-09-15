@@ -59,7 +59,7 @@ class QCBlockLogic_MetaValue extends FunSuite {
     assert(
       dataset
         .filter(_.feature == "southbasin")
-        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/battery/static/min")
+        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/battery/static/min")
         .size == 2
     )
   }
@@ -68,7 +68,7 @@ class QCBlockLogic_MetaValue extends FunSuite {
     assert(
       dataset
         .filter(_.feature == "southbasin")
-        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/battery/static/max")
+        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/battery/static/max")
         .size == 2
     )
   }
@@ -77,7 +77,7 @@ class QCBlockLogic_MetaValue extends FunSuite {
     assert(
       dataset
         .filter(_.feature == "southbasin")
-        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/battery/hourlybattery/min")
+        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/battery/hourlybattery/min")
         .size == 2
     )
   }
@@ -86,7 +86,7 @@ class QCBlockLogic_MetaValue extends FunSuite {
     assert(
       dataset
         .filter(_.feature == "southbasin")
-        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/battery/hourlybattery/max")
+        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/battery/hourlybattery/max")
         .size == 2
     )
   }
@@ -95,7 +95,7 @@ class QCBlockLogic_MetaValue extends FunSuite {
     assert(
       dataset
         .filter(_.feature == "southbasin")
-        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/battery/dailybattery/min")
+        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/battery/dailybattery/min")
         .size == 2
     )
   }
@@ -104,7 +104,7 @@ class QCBlockLogic_MetaValue extends FunSuite {
     assert(
       dataset
         .filter(_.feature == "southbasin")
-        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/battery/dailybattery/max")
+        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/battery/dailybattery/max")
         .size == 2
     )
   }
@@ -113,7 +113,7 @@ class QCBlockLogic_MetaValue extends FunSuite {
     assert(
       dataset
         .filter(_.feature == "southbasin")
-        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/battery/monthlybattery/min")
+        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/battery/monthlybattery/min")
         .size == 2
     )
   }
@@ -122,7 +122,7 @@ class QCBlockLogic_MetaValue extends FunSuite {
     assert(
       dataset
         .filter(_.feature == "southbasin")
-        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/battery/monthlybattery/max")
+        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/battery/monthlybattery/max")
         .size == 2
     )
   }
@@ -131,7 +131,7 @@ class QCBlockLogic_MetaValue extends FunSuite {
     assert(
       dataset
         .filter(_.feature == "southbasin")
-        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/cabling/static/min")
+        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/cabling/static/min")
         .size == 2
     )
   }
@@ -140,7 +140,7 @@ class QCBlockLogic_MetaValue extends FunSuite {
     assert(
       dataset
         .filter(_.feature == "southbasin")
-        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/cabling/static/max")
+        .filter(_.qualifier == "http://placeholder.catalogue.ceh.ac.uk/qc/meta/value/range/cabling/static/max")
         .size == 2
     )
   }

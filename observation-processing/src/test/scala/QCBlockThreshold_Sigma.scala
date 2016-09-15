@@ -1,11 +1,15 @@
 // Unit testing libraries
+import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer09
 import org.apache.flink.streaming.util.serialization.SimpleStringSchema
 import org.scalatest.FunSuite
 import org.junit.runner.RunWith
+import org.management.observations.processing.ProjectConfiguration
 import org.management.observations.processing.bolts.qc.block.threshold.{QCBlockThresholdDeltaSpikeCheck, QCBlockThresholdDeltaStepCheck, QCBlockThresholdRangeCheck, QCBlockThresholdSigmaCheck}
+import org.management.observations.processing.bolts.routing.InjectRoutingInfo
+import org.management.observations.processing.tuples.RoutedObservation
 import org.scalatest.junit.JUnitRunner
 
 // Core Flink related libraries
@@ -21,6 +25,9 @@ import org.management.observations.processing.bolts.qc.block.logic.QCBlockLogicT
 import org.management.observations.processing.bolts.qc.block.meta.QCBlockMetaValueRangeCheck
 import org.management.observations.processing.bolts.transform.{RawCSVToObservation, RawToSemanticObservation}
 import org.management.observations.processing.tuples.{MetaOutcomeQuantitative, QCOutcomeQuantitative}
+
+import scala.collection.JavaConversions._
+
 
 // Used to read in the CSVObservation.csv file with the observation data
 import scala.io.Source._
@@ -38,16 +45,22 @@ class QCBlockThreshold_Sigma extends FunSuite {
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
     env.setParallelism(1)
 
+    // Read the parameter configuration file
+    val params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
+
     // Read in the test data
-    val observationStream: DataStream[SemanticObservation] = env.fromCollection(
+    val observationStream: DataStream[RoutedObservation] = env.fromCollection(
       fromFile("/home/dciar86/GitHub/observation-management-system/observation-processing/src/test/resources/CSVObservations_QCBlock_Threshold_Sigma.csv")
         .getLines().toSeq
     )
       .map(new RawCSVToObservation)
       .filter(_.parseOK == true)
       .map(new RawToSemanticObservation)
+      .flatMap(new InjectRoutingInfo)
 
     val observationTimeStream = observationStream
+      .filter(_.routes.map(_.model).contains(params.get("routing-qc-block-threshold-sigma")))
+      .map(_.observation)
       .assignAscendingTimestamps(_.phenomenontimestart)
 
     // Perform the bolt

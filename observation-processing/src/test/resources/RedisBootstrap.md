@@ -15,6 +15,14 @@ SET SBAS::PRT2::procedure prttwo
 SET SBAS::PRT2::observableproperty temperature
 ```
 
+## Observation Route
+
+Data necessary for the observations to be routed correctly from the output of QC Block Logic to all other jobs.  This does not affect meta-data observations.
+
+```
+SET southbasin::prtone::temperature::routing  threshold,http://placeholder.catalogue.ceh.ac.uk/qc/range,na::threshold,http://placeholder.catalogue.ceh.ac.uk/qc/sigma,na::threshold,http://placeholder.catalogue.ceh.ac.uk/qc/delta,na
+```
+
 ## QC BLOCK LOGIC
 
 Data necessary for the logic based QC checks, including:
