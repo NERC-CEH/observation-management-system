@@ -51,6 +51,14 @@ object ProjectConfiguration {
     // ScalaPersistToDatabase
     ("kafka-ingest-semantic-observations","observation-persist"),
 
+    // Derived Data
+    ("kafka-ingest-derived","derived-creation"),
+    ("kafka-produce-raw-observations","raw-observations"),
+
+    /**
+      * Semantic links, referencing the catalogue objects
+      */
+
     // QC Qualifiers and outcome types
     ("qc-outcome-pass","http://placeholder.catalogue.ceh.ac.uk/pass"),
     ("qc-outcome-fail","http://placeholder.catalogue.ceh.ac.uk/fail"),
@@ -69,6 +77,7 @@ object ProjectConfiguration {
     ("qc-threshold-sigma-prefix","http://placeholder.catalogue.ceh.ac.uk/qc/sigma/"),
     ("qc-threshold-range-prefix","http://placeholder.catalogue.ceh.ac.uk/qc/range/"),
 
+
     /**
       * Observation Route
       *
@@ -83,7 +92,8 @@ object ProjectConfiguration {
     ("routing-qc-block-threshold-sigma","http://placeholder.catalogue.ceh.ac.uk/qc/sigma"),
     ("routing-qc-block-threshold-range","http://placeholder.catalogue.ceh.ac.uk/qc/range"),
 
-    ("routing-derived-lake-analyzer","http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer")
+    ("routing-derived","derived"),
+    ("routing-derived-lake-analyzer-high-res","http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer")
 
 
 
