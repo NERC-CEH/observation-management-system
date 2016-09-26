@@ -46,7 +46,7 @@ class QCBlockMeta_CSVToMeta extends FunSuite {
   val dataset = obs.toIndexedSeq
 
   test("Is the dataset the correct size?"){
-    assert(dataset.size == 16)
+    assert(dataset.size == 17)
   }
 
   test("Are there the correct number of pass entries?"){
@@ -54,7 +54,34 @@ class QCBlockMeta_CSVToMeta extends FunSuite {
   }
 
   test("Are there the correct number of fail entries?"){
-    assert(dataset.filter(_.parseOK == false).size == 7)
+    assert(dataset.filter(_.parseOK == false).size == 8)
+  }
+
+  test("Are there the correct number of missing values?"){
+    assert(
+      dataset
+        .filter(_.parseOK == false)
+        .filter(_.parseMessage == "Parse failed.  Missing values, check all columns for values.")
+        .size == 4
+    )
+  }
+
+  test("Are there the correct number of malformed timestamps?"){
+    assert(
+      dataset
+        .filter(_.parseOK == false)
+        .filter(_.parseMessage == "Parse failed.  Start and/or End time are malformed.")
+        .size == 1
+    )
+  }
+
+  test("Are there the correct number of malformed CSV records?"){
+    assert(
+      dataset
+        .filter(_.parseOK == false)
+        .filter(_.parseMessage == "Parse failed.  Malformed CSV, missing columns.")
+        .size == 3
+    )
   }
 }
 

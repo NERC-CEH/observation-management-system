@@ -75,6 +75,14 @@ class SemanticStamp_CSVToRaw extends FunSuite {
     )
   }
 
+  test("Does the dataset contain the correct number of failed by typenumerical observations?"){
+    assert(
+      dataset
+        .filter(_.parseMessage == "Observation type from registry not matched.")
+        .filter(_.parseOK == false)
+        .size == 1
+    )
+  }
   test("Does the dataset contain the correct number of timestamp parsing errors?"){
     assert(
       dataset
