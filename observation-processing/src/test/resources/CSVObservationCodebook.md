@@ -64,15 +64,15 @@ SBAS,PRT1,1471219200000,NotAValue
 SBAS,PRT1,1471219200000,NotAValue
 ```
 
-OK numerical values:
+OK numerical values (one with meta-data):
 ```
 SBAS,PRT1,1471219200000,22.45
 SBAS,PRT1,1471219200000,22.41
 SBAS,PRT1,1471219200000,22.42
-SBAS,PRT1,1471219200000,22.43
+SBAS,PRT1,1471219200000,22.43,valueA=1::valueB=2::valueC=3
 ```
 
-OK categorical values:
+Numeric sensor with non-numeric observation:
 ```
 SBAS,PRT1,1471219200000,Blue Moth
 ```
@@ -80,22 +80,25 @@ SBAS,PRT1,1471219200000,Blue Moth
 The above should provide the following output for SemanticStamp_CSVToRaw:
 
 * 16 total entries
-* 7 OK entries (OK and Null values)
+* 6 OK entries (OK and Null values)
 * 6 numerical entries
-* 1 categorical entry
+* 0 categorical entry
+* 1 numeric entry with categorical type
 * 1 timestamp parse error
 * 2 registry lookup failures
-* 6 malformed tuples (2 with extra/less columns, 4 with missing field value tuples)
+* 6 malformed tuples (1 with extra column recorded as malformed meta-data, 5 with missing field value tuples or columns)
 
 ### RawToSemanticObservation
 
 This section uses the same data as the **RawCSVToObservation** section, however with different output checked for.
 
 * 6 numerical entries
-* 1 categorical entry
+* 0 categorical entry
 * year equal to 2016
 * month equal to 8
 * phenomenontimeend equal to phenomenontimestart
+* 1 meta-data parameters present
+* 3 meta-data parameters in above observation formatted correctly
 
 ## QC Block Logic
 
@@ -138,7 +141,6 @@ Output to test for:
 
 The time spacing check involves looking up the registry to check whether the particular feature/procedure/observedproperty combination has an expected spacing attribute.  If so the current spacing is checked, if not nothing is output.
 
-PRT1 will have eight records in total, two of which will fail the intended spacing check of four minutes (240000 milliseconds).  PRT2 should have no output.
 ```
 SBAS,PRT1,1452427440000,22.45 
 SBAS,PRT1,1452427680000,22.45
@@ -154,6 +156,16 @@ SBAS,PRT2,1452429840000,22.45
 
 SBAS,PRT2,1452430320000,22.45
 ```
+
+PRT1 will have:
+ 
+* 8 records in total
+* 6 records passing
+* 2 records failing the intended spacing check of four minutes (240000 milliseconds).  
+* 0 records for PRT2
+* 1 record (the initial one) with space of zero
+* 5 records with spacing -240000
+* 2 records with spacing 480000
 
 ### Meta-Identity
 
@@ -176,11 +188,11 @@ This will create a test for:
 
 Similar to meta-identity, except this time there are default pass outputs for minimum and maximum test thresholds, using the same CSV data as meta-identity, providing the following output:
 
-* 4 total records
-* 4 south basin records
+* 20 total records
+* 20 south basin records
+* 2 static/hourly/daily/monthly battery records
+* 2 static cabling records
 * 0 north basin records
-* 2 min battery records
-* 2 max battery records
 
 ### Null Value Filtering
 
@@ -192,14 +204,12 @@ SBAS,PRT1,1452427440000,22.45
 SBAS,PRT1,1452427440000,22.45
 SBAS,PRT1,1452427440000,NotAValue
 SBAS,PRT1,1452427440000,NotAValue
-SBAS,PRT1,1452427440000,Blue Moth
-SBAS,PRT1,1452427440000,Red Moth
 ```
 
 This will create a test for:
 
-* 8 total records
-* 5 pass records
+* 6 total records
+* 3 pass records
 * 3 fail, records with null value
 
 ## QC Block Meta
@@ -220,6 +230,7 @@ The entries below test for well-formed and malformed parsing.
 
 ```
 southbasin,battery,1470050400000,1470057600000,15
+southbasin,battery,2017-01-01T00:00:00+0000,1470057600000,15
 ,battery,1470050400000,1470057600000,10.5
 southbasin,,1452427440000,1470057600000,10.5
 southbasin,battery,,1470057600000,10.5
@@ -230,17 +241,20 @@ southbasin,battery,1470050400000,1470057600000
 southbasin,battery,1470050400000,1470057600000,10.5
 southbasin,maintenance,1470050400000,1470057600000,NotAValue
 southbasin,maintenance_no_affected,1470050400000,1470057600000,NotAValue
-southbasin,battery,1470050400000,1470057600000,10.5
+southbasin,battery,1470050400000,1470057600000,9
 southbasin,wifi,1470050400000,1470057600000,10.5
 southbasin,network,1470050400000,1470057600000,10.5
 southbasin,sdcard,1470050400000,1470057600000,10.5
 southbasin,cabling,1470050400000,1470057600000,10.5
 ```
 
-* 16 total records
-* 2 parsed identity record
-* 7 parsed value records
-* 7 failed to parse records
+* 17 total records
+* 9 parsed OK records
+* 8 failed to parse records
+* 5 missing values
+* 1 malformed timestamp
+* 3 incorrect field length
+
 
 ### Meta-Identity 
 
@@ -475,3 +489,50 @@ SBAS,PRT1,1470502800000,32
 
 
 TODO: Passing quantitative tests, only testing the fails currently.
+
+## Lake Analyzer
+
+The following entries provide observations for one window output for each of the lake analyzer outputs.
+
+```
+SBAS,PRT1,1372417200000,16.05365
+SBAS,PRT2,1372417200000,16.06409
+SBAS,PRT3,1372417200000,16.09060
+SBAS,PRT4,1372417200000,13.19981
+SBAS,PRT5,1372417200000,12.05359
+SBAS,PRT6,1372417200000,10.91482
+SBAS,PRT7,1372417200000,10.03103
+SBAS,PRT8,1372417200000,9.10167
+SBAS,PRT9,1372417200000,8.88400
+SBAS,PRT10,1372417200000,8.54495
+SBAS,PRT11,1372417200000,8.45575
+SBAS,PRT12,1372417200000,8.41193
+
+SBAS,PRT1,1372420800000,16.01970
+SBAS,PRT2,1372420800000,16.04553
+SBAS,PRT3,1372420800000,16.08036
+SBAS,PRT4,1372420800000,13.14869
+SBAS,PRT5,1372420800000,12.04616
+SBAS,PRT6,1372420800000,10.92694
+SBAS,PRT7,1372420800000,9.99209
+SBAS,PRT8,1372420800000,9.01921
+SBAS,PRT9,1372420800000,8.89522
+SBAS,PRT10,1372420800000,8.63823
+SBAS,PRT11,1372420800000,8.47997
+SBAS,PRT12,1372420800000,8.41469
+
+```
+
+The following should be returned for the first timestamp:
+
+* buoyancy frequency of 0.001384711
+* center buoyancy of 9.499677
+* meta depths of (top) 5.52431 (bottom) 6.802273
+* thermo depth of 5.5
+
+And the following for the second timestamp:
+
+* buoyancy frequency of 0.001400761
+* center buoyancy of 9.532922
+* meta depths of (top) 5.48905 (bottom) 6.805234
+* thermo depth of 5.5
