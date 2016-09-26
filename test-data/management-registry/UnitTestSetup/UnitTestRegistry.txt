@@ -6,7 +6,85 @@ SET SBAS::PRT1::observationtype numeric
 SET SBAS::PRT2::feature southbasin
 SET SBAS::PRT2::procedure prttwo
 SET SBAS::PRT2::observableproperty temperature
-SET southbasin::prtone::temperature::routing  threshold,http://placeholder.catalogue.ceh.ac.uk/qc/range,na::threshold,http://placeholder.catalogue.ceh.ac.uk/qc/sigma,na::threshold,http://placeholder.catalogue.ceh.ac.uk/qc/delta,na
+SET SBAS::PRT2::observationtype numeric
+
+SET SBAS::PRT3::feature southbasin
+SET SBAS::PRT3::procedure prtthree
+SET SBAS::PRT3::observableproperty temperature
+SET SBAS::PRT3::observationtype numeric
+
+SET SBAS::PRT4::feature southbasin
+SET SBAS::PRT4::procedure prtfour
+SET SBAS::PRT4::observableproperty temperature
+SET SBAS::PRT4::observationtype numeric
+
+SET SBAS::PRT5::feature southbasin
+SET SBAS::PRT5::procedure prtfive
+SET SBAS::PRT5::observableproperty temperature
+SET SBAS::PRT5::observationtype numeric
+
+SET SBAS::PRT6::feature southbasin
+SET SBAS::PRT6::procedure prtsix
+SET SBAS::PRT6::observableproperty temperature
+SET SBAS::PRT6::observationtype numeric
+
+SET SBAS::PRT7::feature southbasin
+SET SBAS::PRT7::procedure prtseven
+SET SBAS::PRT7::observableproperty temperature
+SET SBAS::PRT7::observationtype numeric
+
+SET SBAS::PRT8::feature southbasin
+SET SBAS::PRT8::procedure prteight
+SET SBAS::PRT8::observableproperty temperature
+SET SBAS::PRT8::observationtype numeric
+
+SET SBAS::PRT9::feature southbasin
+SET SBAS::PRT9::procedure prtnine
+SET SBAS::PRT9::observableproperty temperature
+SET SBAS::PRT9::observationtype numeric
+
+SET SBAS::PRT10::feature southbasin
+SET SBAS::PRT10::procedure prtten
+SET SBAS::PRT10::observableproperty temperature
+SET SBAS::PRT10::observationtype numeric
+
+SET SBAS::PRT11::feature southbasin
+SET SBAS::PRT11::procedure prteleven
+SET SBAS::PRT11::observableproperty temperature
+SET SBAS::PRT11::observationtype numeric
+
+SET SBAS::PRT12::feature southbasin
+SET SBAS::PRT12::procedure prttwelve
+SET SBAS::PRT12::observableproperty temperature
+SET SBAS::PRT12::observationtype numeric
+
+SET southbasin::prtone::temperature::depth 1
+SET southbasin::prttwo::temperature::depth 2
+SET southbasin::prtthree::temperature::depth 4
+SET southbasin::prtfour::temperature::depth 7
+SET southbasin::prtfive::temperature::depth 10
+SET southbasin::prtsix::temperature::depth 13
+SET southbasin::prtseven::temperature::depth 16
+SET southbasin::prteight::temperature::depth 19
+SET southbasin::prtnine::temperature::depth 22
+SET southbasin::prtten::temperature::depth 25
+SET southbasin::prteleven::temperature::depth 30
+SET southbasin::prttwelve::temperature::depth 35
+
+
+SET southbasin::prtone::temperature::routing  threshold,http://placeholder.catalogue.ceh.ac.uk/qc/range,southbasin-prtone-temperature::threshold,http://placeholder.catalogue.ceh.ac.uk/qc/sigma,southbasin-prtone-temperature::threshold,http://placeholder.catalogue.ceh.ac.uk/qc/delta,southbasin-prtone-temperature::derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+
+SET southbasin::prttwo::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+SET southbasin::prtthree::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+SET southbasin::prtfour::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+SET southbasin::prtfive::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+SET southbasin::prtsix::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+SET southbasin::prtseven::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+SET southbasin::prteight::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+SET southbasin::prtnine::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+SET southbasin::prtten::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+SET southbasin::prteleven::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
+SET southbasin::prttwelve::temperature::routing derived,http://placeholder.catalogue.ceh.ac.uk/derived/lake-analyzer,southbasin
 
 
 SET southbasin::prtone::temperature::intendedspacing 240000
