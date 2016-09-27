@@ -167,3 +167,9 @@ SET southbasin::prtone::temperature::thresholds::delta::step::static::max 10
 
 SET southbasin::prtone::temperature::thresholds::delta::spike::static::min 0
 SET southbasin::prtone::temperature::thresholds::delta::spike::static::max 5
+
+SET southbasin::prtone::temperature::thresholds::null::consecutive 3
+SET southbasin::prtone::temperature::thresholds::null::aggregate::1h 3
+SET southbasin::prtone::temperature::thresholds::null::aggregate::12h 5
+SET southbasin::prtone::temperature::thresholds::null::aggregate::24h 10
+

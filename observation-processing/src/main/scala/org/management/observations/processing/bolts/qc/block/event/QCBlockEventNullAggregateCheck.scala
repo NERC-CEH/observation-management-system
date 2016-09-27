@@ -3,7 +3,7 @@ package org.management.observations.processing.bolts.qc.block.event
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
 import org.apache.flink.api.java.utils.ParameterTool
-import org.management.observations.processing.tuples.SemanticObservation
+import org.management.observations.processing.tuples.{QCOutcomeQualitative, SemanticObservation}
 
 // The base class for the key tuple, in this case Tuple3
 import org.apache.flink.api.java.tuple.Tuple
@@ -35,7 +35,7 @@ import scala.collection.JavaConversions._
   *
   * - Generate a QCEvent onto the datastream when the threshold is exceeded
   */
-class QCBlockEventNullAggregateCheck extends RichWindowFunction[SemanticObservation, QCEvent, Tuple, TimeWindow]{
+class QCBlockEventNullAggregateCheck extends RichWindowFunction[QCOutcomeQualitative, QCEvent, Tuple, TimeWindow]{
 
   @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
   @transient var redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
@@ -45,14 +45,13 @@ class QCBlockEventNullAggregateCheck extends RichWindowFunction[SemanticObservat
     this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
-  def apply(key: Tuple, window: TimeWindow, input: Iterable[SemanticObservation], out: Collector[QCEvent]): Unit = {
+  def apply(key: Tuple, window: TimeWindow, input: Iterable[QCOutcomeQualitative], out: Collector[QCEvent]): Unit = {
 
     // Retrieve the meta-data fields from the key and window elements
     val feature = key.getField(0).toString
     val procedure = key.getField(1).toString
     val observableproperty = key.getField(2).toString
 
-    val event = "Consecutive Nulls: "+input.size.toString
     val eventtimestart = window.getStart
     val eventtimeend = window.getEnd
 
@@ -72,8 +71,9 @@ class QCBlockEventNullAggregateCheck extends RichWindowFunction[SemanticObservat
 
     // Calculate window size, lookup registry for threshold
     val timeDiff = eventtimeend-eventtimestart
-    val windowDuration: String = if(timeDiff < 5400) "1h" else if(timeDiff < 45000) "12h" else "24h"
-    val nullThreshold = this.redisCon.get(feature+":"+procedure+":"+observableproperty+":thresholds:null:aggregate:"+windowDuration)
+    val windowDuration: String = if(timeDiff < 5400000) "1h" else if(timeDiff < 45000000) "12h" else "24h"
+    val event = params.get("qc-event-null-aggregate-prefix")+ windowDuration
+    val nullThreshold = this.redisCon.get(feature+"::"+procedure+"::"+observableproperty+"::thresholds::null::aggregate::"+windowDuration)
 
     if(nullThreshold.isDefined){
       // Compare threshold to observations in window, if exceeded generate an event

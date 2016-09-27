@@ -219,3 +219,12 @@ SET southbasin::prtten::temperature::depth 25
 SET southbasin::prteleven::temperature::depth 30
 SET southbasin::prttwelve::temperature::depth 35
 ```
+
+## QC Block Event 
+
+```
+SET southbasin::prtone::temperature::thresholds::null::consecutive 3
+SET southbasin::prtone::temperature::thresholds::null::aggregate::1h 3
+SET southbasin::prtone::temperature::thresholds::null::aggregate::12h 5
+SET southbasin::prtone::temperature::thresholds::null::aggregate::24h 10
+```

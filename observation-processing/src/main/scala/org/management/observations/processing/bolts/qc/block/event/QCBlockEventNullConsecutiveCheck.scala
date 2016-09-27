@@ -9,7 +9,7 @@ import org.apache.flink.streaming.api.scala.function.RichWindowFunction
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow
 import org.apache.flink.util.Collector
 import org.management.observations.processing.ProjectConfiguration
-import org.management.observations.processing.tuples.{QCEvent, SemanticObservation}
+import org.management.observations.processing.tuples.{QCEvent, QCOutcomeQualitative, SemanticObservation}
 
 import scala.collection.JavaConversions._
 
@@ -33,7 +33,7 @@ import scala.collection.JavaConversions._
   * - If no threshold variable is within the registry, set state variable with alter
   * status to false and count to zero.
   */
-class QCBlockEventNullConsecutiveCheck extends RichWindowFunction[SemanticObservation, QCEvent, Tuple, GlobalWindow] {
+class QCBlockEventNullConsecutiveCheck extends RichWindowFunction[QCOutcomeQualitative, QCEvent, Tuple, GlobalWindow] {
 
   /**
     * Tuple3:
@@ -54,7 +54,7 @@ class QCBlockEventNullConsecutiveCheck extends RichWindowFunction[SemanticObserv
     state = getRuntimeContext.getState(new ValueStateDescriptor("QCNullConsecutive",classOf[Tuple3[Long, Int, Boolean]],null))
   }
 
-  def apply(key: Tuple, window: GlobalWindow, input: Iterable[SemanticObservation], out: Collector[QCEvent]): Unit = {
+  def apply(key: Tuple, window: GlobalWindow, input: Iterable[QCOutcomeQualitative], out: Collector[QCEvent]): Unit = {
 
     //Check if this is the first observation, if so just initialise the state
     if(state.value() == null){
@@ -68,9 +68,10 @@ class QCBlockEventNullConsecutiveCheck extends RichWindowFunction[SemanticObserv
         * adding a delay in observation generation, but not enough to skip an observation
         * entirely.
         */
-      val expectedTimeDiff = this.redisCon.get(input.head.feature+":"+input.head.procedure+":"+input.head.observableproperty+":meta:intendedspacing")
+
+      val expectedTimeDiff = this.redisCon.get(input.head.feature+"::"+input.head.procedure+"::"+input.head.observableproperty+"::intendedspacing")
       if(expectedTimeDiff.isDefined){
-        val wideTimeDiff = expectedTimeDiff.get.toLong + expectedTimeDiff.get.toLong * 0.5
+        val wideTimeDiff = expectedTimeDiff.get.toLong * 1.5
 
         // Check if the observations are consecutive
         val isConsecutive = input.head.phenomenontimestart - state.value()._1 <= wideTimeDiff
@@ -83,7 +84,7 @@ class QCBlockEventNullConsecutiveCheck extends RichWindowFunction[SemanticObserv
         if(isConsecutive) {
 
           val currentCount = state.value()._2 + 1
-          val countThreshold = this.redisCon.get(input.head.feature+":"+input.head.procedure+":"+input.head.observableproperty+":thresholds:null:consecutive:")
+          val countThreshold = this.redisCon.get(input.head.feature+"::"+input.head.procedure+"::"+input.head.observableproperty+"::thresholds::null::consecutive")
 
           if(countThreshold.isDefined){
             /**
@@ -98,19 +99,19 @@ class QCBlockEventNullConsecutiveCheck extends RichWindowFunction[SemanticObserv
                     input.head.feature,
                     input.head.procedure,
                     input.head.observableproperty,
-                    "Consecutive Null values exceeds threshold",
+                    params.get("qc-event-null-consecutive"),
                     input.head.phenomenontimestart,
-                    input.head.phenomenontimeend)
+                    input.head.phenomenontimestart)
                 )
+                state.update((input.head.phenomenontimestart, currentCount, true))
               }
-              state.update((input.head.phenomenontimestart, currentCount, true))
             }else{
               // When the threshold is not matched or exceeded, update the timestamp
               // and count, and ensure event is false
               state.update((input.head.phenomenontimestart, currentCount, false))
             }
           }else{
-            // When threshold not defined, set to empty
+            // When threshold not defined, set count to empty
             state.update((input.head.phenomenontimestart, 0, false))
           }
         }else {

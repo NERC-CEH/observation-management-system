@@ -31,6 +31,20 @@ trait SemanticObservationFlow {
     )
   }
 
+  def createQCOutcomeQualitative(serialized: String): QCOutcomeQualitative = {
+    val qcSplit = serialized.split("::")
+    new QCOutcomeQualitative(
+      qcSplit(0),
+      qcSplit(1),
+      qcSplit(2),
+      qcSplit(3).toInt,
+      qcSplit(4).toInt,
+      qcSplit(5).toLong,
+      qcSplit(6),
+      qcSplit(7)
+    )
+  }
+
   def createQCOutcomeQuantitative(obs: SemanticObservation,
                                   qualifier: String,
                                   qualitative: String,
@@ -45,6 +59,21 @@ trait SemanticObservationFlow {
       qualifier,
       qualitative,
       quantitative
+    )
+  }
+
+  def createQCOutcomeQuantitative(serialized: String): QCOutcomeQuantitative = {
+    val qcSplit = serialized.split("::")
+    new QCOutcomeQuantitative(
+      qcSplit(0),
+      qcSplit(1),
+      qcSplit(2),
+      qcSplit(3).toInt,
+      qcSplit(4).toInt,
+      qcSplit(5).toLong,
+      qcSplit(6),
+      qcSplit(7),
+      qcSplit(8).toDouble
     )
   }
 

@@ -38,6 +38,7 @@ object ProjectConfiguration {
     // Observation Route
     ("kafka-ingest-routing-assignment","observation-routing"),
     ("kafka-produce-qc-threshold","observation-qc-threshold"),
+    ("kafka-produce-derived-data","derived-creation"),
 
     // QCBlockMeta
     ("kafka-ingest-meta-observations","meta-observations"),
@@ -47,6 +48,11 @@ object ProjectConfiguration {
 
     // QCBlockThreshold
     ("kafka-ingest-qc-threshold","observation-qc-threshold"),
+
+    // QCBlockEvent
+    ("kafka-ingest-qc-event-qualitative","qc-qualitative-persist"),
+    ("kafka-ingest-qc-event-quantitative","qc-quantitative-persist"),
+    ("kafka-produce-event","event-persist"),
 
     // ScalaPersistToDatabase
     ("kafka-ingest-semantic-observations","observation-persist"),
@@ -77,7 +83,11 @@ object ProjectConfiguration {
     ("qc-threshold-sigma-prefix","http://placeholder.catalogue.ceh.ac.uk/qc/sigma/"),
     ("qc-threshold-range-prefix","http://placeholder.catalogue.ceh.ac.uk/qc/range/"),
 
-
+    // QC Event
+    ("qc-event-null-aggregate-prefix","http://placeholder.catalogue.ceh.ac.uk/event/null/aggregate/"),
+    ("qc-event-null-consecutive","http://placeholder.catalogue.ceh.ac.uk/event/null/consecutive"),
+    ("qc-event-order","http://placeholder.catalogue.ceh.ac.uk/event/timing/order"),
+    ("qc-event-spacing","http://placeholder.catalogue.ceh.ac.uk/event/timing/spacing"),
     /**
       * Observation Route
       *
