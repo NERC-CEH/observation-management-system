@@ -42,8 +42,7 @@ case class SemanticObservation(feature: String,
                                uncertml: Option[String],
                                comment: String,
                                location: Option[String],
-                               parameters: Option[scala.collection.mutable.Map[String,String]])
-  extends BaseSemanticRecord {
+                               parameters: Option[Map[String,String]]) {
 
     override def toString: String = {
 

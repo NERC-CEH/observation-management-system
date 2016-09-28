@@ -22,7 +22,7 @@ case class QCOutcomeQualitative(feature: String,
                                 month: Int,
                                 phenomenontimestart: Long,
                                 qualifier: String,
-                                qualitative: String) extends BaseSemanticRecord {
+                                qualitative: String)  {
 
   override def toString: String = feature + "::" +
     procedure + "::" +

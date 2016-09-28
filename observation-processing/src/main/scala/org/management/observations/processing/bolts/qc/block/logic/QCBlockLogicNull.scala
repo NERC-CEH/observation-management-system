@@ -1,13 +1,23 @@
 package org.management.observations.processing.bolts.qc.block.logic
 
-// Tuples used in the processing
-import com.redis.RedisClient
-import org.apache.flink.api.common.functions.RichMapFunction
-import org.apache.flink.api.common.state.ValueStateDescriptor
+// Used for connecting to the Redis registry
 import org.apache.flink.api.java.utils.ParameterTool
+
+// Allows the use of the state variables
+import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
+
+// Used for passing parameters to the open() function
 import org.apache.flink.configuration.Configuration
-import org.management.observations.processing.ProjectConfiguration
+
+// The function being extended
+import org.apache.flink.api.common.functions.RichMapFunction
+
+// The tuples used within this bolt
 import org.management.observations.processing.tuples.{QCOutcomeQualitative, SemanticObservation, SemanticObservationFlow}
+
+// System KVP properties
+import org.management.observations.processing.ProjectConfiguration
+
 
 import scala.collection.JavaConversions._
 

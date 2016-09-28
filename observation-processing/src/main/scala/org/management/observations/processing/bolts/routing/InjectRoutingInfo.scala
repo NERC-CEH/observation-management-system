@@ -1,20 +1,27 @@
 package org.management.observations.processing.bolts.routing
 
-import com.redis.RedisClient
-import org.apache.flink.api.common.functions.{RichFlatMapFunction, RichMapFunction}
+// Execution environment
 import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.configuration.Configuration
+import org.apache.flink.api.common.functions.{RichFlatMapFunction}
 import org.apache.flink.util.Collector
-import org.management.observations.processing.ProjectConfiguration
-import org.management.observations.processing.tuples.{RoutedObservation, RoutedObservationDetail, SemanticObservation}
 
+// Redis connection
+import com.redis.RedisClient
+
+// The tuple types used within this job, and the bolts used to convert from the
+// raw CSV format to a RawObservation, and from RawObservation to SemanticObservationNumeric
+import org.management.observations.processing.tuples.{RoutedObservation, RoutedObservationDetail, SemanticObservation, SemanticObservationFlow}
+
+// System KVP properties and time representations
+import org.management.observations.processing.ProjectConfiguration
 import scala.collection.JavaConversions._
 
 /**
-  * Created by dciar86 on 15/09/16.
+  * Class connects to the registry and retrieves the routing data for the given observation,
+  * if no routing information is found, nothing is output.
   */
-class InjectRoutingInfo extends RichFlatMapFunction[SemanticObservation, RoutedObservation]{
-
+class InjectRoutingInfo extends RichFlatMapFunction[SemanticObservation, RoutedObservation] with SemanticObservationFlow {
 
   @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
   @transient var redisCon: RedisClient = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
@@ -37,7 +44,7 @@ class InjectRoutingInfo extends RichFlatMapFunction[SemanticObservation, RoutedO
 
     if(routingMetadata.isDefined) {
       val routes = routingMetadata.get.split("::").map(x => new RoutedObservationDetail(x.split(",")(0),x.split(",")(1),x.split(",")(2)))
-      out.collect(new RoutedObservation(obs,routes))
+      out.collect(new RoutedObservation(createBasicNumericObservationWOKey(obs),routes))
     }
   }
 }

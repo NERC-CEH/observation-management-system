@@ -4,7 +4,7 @@ package org.management.observations.processing.jobs
 import org.apache.flink.api.common.ExecutionConfig
 import org.apache.flink.api.java.utils.ParameterTool
 import org.management.observations.processing.bolts.derived.LakeAnalyzer
-import org.management.observations.processing.tuples.BasicObservation
+import org.management.observations.processing.tuples.BasicNumericObservation
 
 // Used to provide serializer/deserializer information for user defined objects
 // to place onto the Kafka queue
@@ -76,19 +76,9 @@ object DerivedData {
       * carried out to minimise the size of the window.
       */
 
-    val laHighTupleStream: DataStream[BasicObservation] = observationStream
+    val laHighTupleStream: DataStream[BasicNumericObservation] = observationStream
       .filter(_.routes.map(_.model).contains(params.get("routing-derived-lake-analyzer-high-res")))
-      .map(x =>
-        new BasicObservation(
-          x.observation.feature,
-          x.observation.procedure,
-          x.observation.observableproperty,
-          x.routes.filter(_.model == params.get("routing-derived-lake-analyzer-high-res")).head.key,
-          x.observation.phenomenontimestart,
-          x.observation.phenomenontimeend,
-          x.observation.numericalObservation.get
-        )
-      )
+      .map(x => x.observation)
       .assignTimestampsAndWatermarks(new LakeAnalyzerEventTime)
 
 

@@ -3,6 +3,7 @@ package org.management.observations.processing.bolts.qc.block.threshold
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
 import org.apache.flink.api.java.utils.ParameterTool
+import org.management.observations.processing.tuples.BasicNumericObservation
 
 // The function being extended and related
 import org.apache.flink.streaming.api.scala.function.RichWindowFunction
@@ -50,7 +51,7 @@ import scala.collection.JavaConversions._
   *     hours.  If other window sizes are used, they will be grouped into these
   *     categories.
   */
-class QCBlockThresholdSigmaCheck extends RichWindowFunction[SemanticObservation, QCOutcomeQuantitative, Tuple, TimeWindow] with SemanticObservationFlow{
+class QCBlockThresholdSigmaCheck extends RichWindowFunction[BasicNumericObservation, QCOutcomeQuantitative, Tuple, TimeWindow] with SemanticObservationFlow{
 
   @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
   @transient var redisCon: RedisClient = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
@@ -60,7 +61,7 @@ class QCBlockThresholdSigmaCheck extends RichWindowFunction[SemanticObservation,
     this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
-  def apply(key: Tuple, window: TimeWindow, input: Iterable[SemanticObservation], out: Collector[QCOutcomeQuantitative]): Unit = {
+  def apply(key: Tuple, window: TimeWindow, input: Iterable[BasicNumericObservation], out: Collector[QCOutcomeQuantitative]): Unit = {
 
 
     // Retrieve the meta-data fields from the key and window elements
@@ -95,7 +96,7 @@ class QCBlockThresholdSigmaCheck extends RichWindowFunction[SemanticObservation,
 
     // Create the summary statistic variable with all the observation values
     val stats: SummaryStatistics = new SummaryStatistics()
-    input.map(_.numericalObservation.get).foreach(stats.addValue(_))
+    input.map(_.numericalObservation).foreach(stats.addValue(_))
 
     // Calculate the variance
     val windowVariance: Double = stats.getVariance
@@ -132,7 +133,7 @@ class QCBlockThresholdSigmaCheck extends RichWindowFunction[SemanticObservation,
         *                         or a single point's time instant.
         */
       def processTest(testList: Array[String],
-                      observations: Iterable[SemanticObservation],
+                      observations: Iterable[BasicNumericObservation],
                       observationValue: Double,
                       timeInstantMilli: Long): Unit = {
 

@@ -1,22 +1,20 @@
 # System Workflow
 
-## Data ingestion
+## Data Ingestion
 
-For the sensor networks involved in this project, the data arrives on-site from a range of different data loggers.  The data files produced by the different loggers are in relatively similar, but not the same, format.  To bridge these data files to the processing system a set of scripts micro-batch the data onto the initial queue.  From this point the data is represented with semantic information throughout the system until being made persistent in the database.
+For the sensor networks involved in this project, the data arrives on-site from a range of different data loggers.  The data files produced by the different loggers are in relatively similar, but not the same, format.  To bridge these data files to the processing system Apache Nifi is used to place the data onto the initial queue as and when it becomes available.  From this point the data is represented with semantic information throughout the system until being made persistent in the database.
 
 ![Basic Workflow Overlay](graphics/HighLevelWorkflow.png?raw=true "High Level Dataflow")
 
-The diagram above describes the general flow for all numerical observations, where data is placed onto the data queue, semantically annotated, processed and persisted.  The generic processing node can stand for the QC, forecasting, or any data processing.  The link back to the data queue is for derived data that is treated like a raw observation that needs to QC applied and potentially more processing.  Events are persisted along with observation data as they need to be managed and potentially mined.
-
-With the ingestion of the data, there is a need for the loaders to keep a record of the last time stamp added, so as not to load an observation more than once.  While this wouldn't cause an issue with the end result, it would mean unnecessary extra processing.
+The diagram above describes the general flow for all numerical observations, where data is placed onto the data queue, semantically annotated, processed and persisted.  The generic processing node can stand for the QC, forecasting, or any data processing.  The link back to the data queue is for derived data that is treated like a raw observation that needs to have QC applied and potentially more processing.  Events are persisted along with observation data as they need to be managed and potentially mined.
 
 ### Automatically Downloaded Sensor Data
 
-Sensor data that streams in from the in-situ loggers are held on-site in XML and CSV formatted files, updated throughout the day.  A script running as a service periodically searches for and processes new data automatically, providing a near-continuous stream of observations.
+Sensor data that streams in from the in-situ loggers are held on-site in XML and CSV formatted files, updated throughout the day.  
 
 ### Manually Downloaded Sensor Data
 
-Sensor data that is manually downloaded from in-situ loggers is periodically added into a data folder with a relatively predictable cycle.  Similar to the automatically downloaded sensor data this can searched by a script service searching for and processing new data as it appears.
+Sensor data that is manually downloaded from in-situ loggers is periodically added into a data folder with a relatively predictable cycle.
 
 ### Manually Sampled and Specimen Analysis Data
 
@@ -33,7 +31,7 @@ The basic observation workflow for numeric observations is shown below, where th
 
 ### Initial Processing
 
-All 
+For numeric observations, the data is first loaded into the `Semantic Stamp` node, which checks for correct formatting, and a corresponding entry in the registry for the observation.  If either of these fail, it is placed on the malformed queue, else it is enriched with the metadata from the registry and persisted to the datastore.  It is also placed onto the queue for the `QC Block Logic` node, which is used to check observations appear in the correct temporal order, that the temporal gap between observations is as expected, and that they are not null.  Following this, observations are placed onto the queue for the node that routes them to the nodes suited to the type of observation.
 
 ## Routing and Semantic Information
 
@@ -54,37 +52,7 @@ The creation of much of the above registry will be automatically generated throu
 
 The example above highlights the reason why it is necessary to use the phenomena rather than individual sensors for rules where possible.  It provides flexibility, and the automated use of new data sources as they are added to the system.  While it is an attempt at a generic solution, it is known that in many instances such automated rules of QC and comparison will be too generic, or lacking in knowledge about outlier stations or unique within our collected observation points, and this will have to be addressed once the preliminary case-study has commenced.
 
-
-
-The diagram above describes the general flow for all numerical observations, 
-
-### Registry Design
-
-TBD.
-
-## Processing Steps
-
-### Overall Processing Flow
-
-
-### RAW Observations
-
-Semantic stamp into Cassandra based on site:sensor lookup to catalogue for URI's.
-
-## QC Check Observations
-
-For QC checks that depend on other observations or meta-data that can be added later than the observations, how is this coordinated
-
-## Interpolation of Nil Observations
-
-## Derived Model Observations
-
-model input parameters served/sent as JSON objects, all encoded together rather than sporadic?  Unless it's lake analyzer?
-
-
 ## Open Questions
 
-* How to automate data-flow and QC checks based on phenomena rather than individual sensors.
-    + this stands for both allowing new data sources to be added and have their data-flow automatically arranged, but also to know to use the data for other observations QC checks.  For instance if a source of air temperature were to be added at a site that already had air temperature recorded, the system would automatically compare the correlation and apply similar tests to the new from the existing procedure.  Such an example leads to the task of automatically determining thresholds.
-* Related to the above, the combination of high and low frequency data in such a scenario to allow automated use of arbitrarily added data sources.
-    + for instance, comparing the high-frequency sensor data to manually sampled observations
+* How to combine high-frequency and low-frequency data together for validation, model use.
+    + for example, fortnightly lake temperature readings validated against high-frequency automated 4 minute resolution readings.

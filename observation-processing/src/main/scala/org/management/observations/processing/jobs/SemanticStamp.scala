@@ -32,7 +32,7 @@ import scala.collection.JavaConversions._
   *
   * - read raw sensor observation tuples from the kafka queue, produce a full
   *    semantic record from the lookup values stored in the registry
-  *    keystore.
+  *    keystore.  Currently for numeric, count, and categorical variables
   *
   * - write the semantic observation record into the database.
   *

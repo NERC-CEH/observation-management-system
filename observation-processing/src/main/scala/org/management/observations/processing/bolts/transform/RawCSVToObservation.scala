@@ -21,7 +21,6 @@ import scala.collection.JavaConversions._
   * - Takes a string CSV representation of an observation, performs
   *   checks to ensure it corresponds to the expected format and
   *   returns the original string with the check outcome summary.
-  *   Also decides whether the observation is numeric or categorical
   */
 class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
 
@@ -38,15 +37,18 @@ class RawCSVToObservation extends RichMapFunction[String, RawObservation]{
   def map(in: String): RawObservation = {
 
     /**
-      * Four checks are performed:
+      * The following checks are performed:
       *
+      * - Does the observation have metadata
       * - Does the observation have the correct number of fields,
-      *   and a value
+      *   and does each field have a value
       * - Does the observation have a millisecond timestamp
-      * - Does the value conform to the type held in the registry
       * - Does the observation metadata have corresponding match
       *   in the registry (feature, procedure, observable property)
-      * - Does the observation have correctly formatted metadata fields
+      * - Does the value conform to the type held in the registry
+      * - Does the metadata fit the expected format
+
+
       */
 
     // Four fields without metadata, five with metadata

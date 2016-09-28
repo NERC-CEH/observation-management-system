@@ -64,19 +64,29 @@ class RawToSemanticObservation extends MapFunction[RawObservation, SemanticObser
     }
 
     // Create the metadata map when metadata records are provided
-    val metaMap = scala.collection.mutable.Map[String, String]()
-    if(currObservation.size == 6){
-      currObservation(5).split("::").foreach(x => metaMap.put(x.split("=")(0), x.split("=")(1)))
+    val metaMap: Option[Map[String,String]] = {
+      if(currObservation.size == 6){
+        def processMetaData(metaTuples: List[String], metaMap: Map[String, String]): Map[String, String] = {
+          if(metaTuples.isEmpty == true) metaMap
+          else {
+            val currTuple = metaTuples.head.split("=")
+            val currMeta = Map(currTuple(0) -> currTuple(1))
+            processMetaData(metaTuples.tail, metaMap ++ currMeta)
+          }
+        }
+        val mMap = processMetaData(currObservation(5).split("::").toList,Map[String,String]())
+        if(mMap.size > 0)
+          Some(mMap)
+        else
+          None
+      }else{
+        None
+      }
     }
 
 
     /**
-      * Create the initial values for the stage of
-      * processing.
-      *
-      * TODO: modify to lookup the registry as each sensor
-      * will have its group of settings depending on
-      * further processing required of it.
+      * Create the initial values for the first stage of processing.
       */
     val quality = 0
     val accuracy = 0
@@ -85,9 +95,7 @@ class RawToSemanticObservation extends MapFunction[RawObservation, SemanticObser
     val uncertml = None
     val comment = "No processing performed."
     val location = None
-    val parameters: Option[scala.collection.mutable.Map[String, String]] =
-      if(metaMap.keys.nonEmpty) Some(metaMap)
-      else None
+    val parameters = metaMap
 
     new SemanticObservation(feature,
       procedure,

@@ -1,17 +1,31 @@
 package org.management.observations.processing.bolts.qc.block.event
 
+// Used for connecting to the Redis registry
 import com.redis.RedisClient
-import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
-import org.apache.flink.api.java.tuple.Tuple
 import org.apache.flink.api.java.utils.ParameterTool
+
+// The base class for the key tuple, in this case Tuple3
+import org.apache.flink.api.java.tuple.Tuple
+
+// Used for passing parameters to the open() function
 import org.apache.flink.configuration.Configuration
+
+// The function being extended
 import org.apache.flink.streaming.api.scala.function.RichWindowFunction
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow
-import org.apache.flink.util.Collector
-import org.management.observations.processing.ProjectConfiguration
-import org.management.observations.processing.tuples.{QCEvent, QCOutcomeQualitative, SemanticObservation}
 
+// The collector for objects to return into the datastream
+import org.apache.flink.util.Collector
+
+// The tuples used within this bolt
+import org.management.observations.processing.tuples.{QCEvent, QCOutcomeQualitative}
+
+// System KVP properties
+import org.management.observations.processing.ProjectConfiguration
 import scala.collection.JavaConversions._
+
+// State libraries
+import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 
 /**
   * QCCheckNullConsecutive

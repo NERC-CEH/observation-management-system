@@ -27,10 +27,6 @@ import java.util.Properties
 import org.management.observations.processing.ProjectConfiguration
 import scala.collection.JavaConversions._
 
-
-/**
-  * Created by dciar86 on 10/08/16.
-  */
 object QCBlockEvent extends SemanticObservationFlow{
 
   // Create the environment, with EventTime

@@ -2,6 +2,7 @@ package org.management.observations.processing.bolts.qc.block.threshold
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
 import org.apache.flink.api.java.utils.ParameterTool
+import org.management.observations.processing.tuples.BasicNumericObservation
 
 // The function being extended and collecting output
 import org.apache.flink.api.common.functions.RichFlatMapFunction
@@ -40,7 +41,7 @@ import scala.collection.JavaConversions._
   *     the point (hourly, half-daily, daily, monthly), and to then identify
   *     the exact point closest to the current observation.
   */
-class QCBlockThresholdRangeCheck extends RichFlatMapFunction[SemanticObservation,QCOutcomeQuantitative] with SemanticObservationFlow{
+class QCBlockThresholdRangeCheck extends RichFlatMapFunction[BasicNumericObservation,QCOutcomeQuantitative] with SemanticObservationFlow{
 
   @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
   @transient var redisCon: RedisClient = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
@@ -50,7 +51,7 @@ class QCBlockThresholdRangeCheck extends RichFlatMapFunction[SemanticObservation
     this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
-  def flatMap(obs: SemanticObservation, out: Collector[QCOutcomeQuantitative]): Unit = {
+  def flatMap(obs: BasicNumericObservation, out: Collector[QCOutcomeQuantitative]): Unit = {
 
     // Create the static part of the registry key
     val testKey: String = obs.feature+"::"+obs.procedure+"::"+obs.observableproperty+"::thresholds::range"
@@ -68,7 +69,7 @@ class QCBlockThresholdRangeCheck extends RichFlatMapFunction[SemanticObservation
       val individualTests: Array[String] = rangeTests.get.split("::")
 
       // Call the test iterator
-      processTest(individualTests, List(obs), obs.numericalObservation.get, obs.phenomenontimestart)
+      processTest(individualTests, List(obs), obs.numericalObservation, obs.phenomenontimestart)
 
       /**
         * This function takes the list of tests to be applied, and recursively iterates
@@ -87,7 +88,7 @@ class QCBlockThresholdRangeCheck extends RichFlatMapFunction[SemanticObservation
         *                         or a single point's time instant.
         */
       def processTest(testList: Array[String],
-                      observations: Iterable[SemanticObservation],
+                      observations: Iterable[BasicNumericObservation],
                       observationValue: Double,
                       timeInstantMilli: Long): Unit = {
 

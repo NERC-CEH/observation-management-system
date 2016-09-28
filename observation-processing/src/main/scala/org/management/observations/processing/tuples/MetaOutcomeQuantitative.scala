@@ -28,7 +28,7 @@ case class MetaOutcomeQuantitative(feature: String,
                                   phenomenontimeend: Long,
                                   qualifier: String,
                                   qualitative: String,
-                                  quantitative: Double) extends BaseSemanticRecord {
+                                  quantitative: Double) {
 
   override def toString: String = feature + "," +
     procedure + "," +

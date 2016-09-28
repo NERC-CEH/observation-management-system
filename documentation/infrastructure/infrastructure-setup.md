@@ -93,7 +93,7 @@ sudo apt-get install linux-image-extra-$(uname -r)
 sudo apt-get install docker-engine
 ```
 
-It should be noted that while the containers that have persistent data such as Cassandra, Kafka, and Flink have their data directories mounted to the host using the `-v` flag, this data is ignored if the container is removed and re-instantiated.  The data continues to stay in the host folder, but it is not picked up by the container.  For example, with Kafka, create a number of topics, then remove and re-instantiate the container.  Try listing the topics, nothing will be returned, however if you browse to the host data directory, you will see the topic folders are still located there.
+It should be noted that while the containers that have persistent data such as Cassandra, Kafka, and Flink have their data directories mounted to the host using the `-v` flag, this data appears to be ignored if the container is removed and re-instantiated with the Kafka instance.  The data continues to stay in the host folder, but it is not picked up by the container.  For example, with Kafka, create a number of topics, then remove and re-instantiate the container.  Try listing the topics, nothing will be returned, however if you browse to the host data directory, you will see the topic folders are still located there.
 
 TODO: 
 

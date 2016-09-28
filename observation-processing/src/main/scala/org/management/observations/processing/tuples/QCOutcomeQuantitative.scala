@@ -3,7 +3,7 @@ package org.management.observations.processing.tuples
 /**
   * QCOutcomeQualitative
   *
-  * - Represents the qualitative and quantitative  QC checks that use either
+  * - Represents the quantitative  QC checks that use either
   *   a boolean or categorical outcome value as well as a numeric representation
   *
   * @param feature the site the observation was generated at, assumed static
@@ -24,7 +24,7 @@ case class QCOutcomeQuantitative(feature: String,
                                  phenomenontimestart: Long,
                                  qualifier: String,
                                  qualitative: String,
-                                 quantitative: Double)  extends BaseSemanticRecord {
+                                 quantitative: Double)  {
 
   override def toString: String = feature + "::" +
     procedure + "::" +
@@ -33,6 +33,7 @@ case class QCOutcomeQuantitative(feature: String,
     month.toString + "::" +
     phenomenontimestart.toString + "::" +
     qualifier + "::" +
+    qualitative + "::" +
     quantitative.toString + "::" +
     "Auto-generated."
 }

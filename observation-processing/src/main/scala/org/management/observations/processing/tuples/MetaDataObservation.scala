@@ -1,7 +1,9 @@
 package org.management.observations.processing.tuples
 
 /**
-  * Represents MetaData information parsed into the system
+  * Represents MetaData information parsed into the system, which relates
+  * to the feature and includes activities such as cleaning, maintenance,
+  * or battery levels.
   *
   * @param feature The feature the metadata relates to
   * @param dataType The type of metadata, e.g. battery, cleaning

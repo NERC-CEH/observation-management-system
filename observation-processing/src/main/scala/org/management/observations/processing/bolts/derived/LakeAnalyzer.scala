@@ -3,7 +3,7 @@ package org.management.observations.processing.bolts.derived
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
 import org.apache.flink.api.java.utils.ParameterTool
-import org.management.observations.processing.tuples.BasicObservation
+import org.management.observations.processing.tuples.BasicNumericObservation
 
 // The function being extended and related
 import org.apache.flink.streaming.api.scala.function.RichWindowFunction
@@ -29,7 +29,7 @@ import org.ddahl.rscala._
   * connect to an R session instance, transfer data between environments,
   * and emit the derived data back into the workflow.
   */
-class LakeAnalyzer extends RichWindowFunction[BasicObservation, String, Tuple, TimeWindow] {
+class LakeAnalyzer extends RichWindowFunction[BasicNumericObservation, String, Tuple, TimeWindow] {
 
   @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
   @transient var redisCon: RedisClient = new RedisClient(params.get("redis-conn-ip"), params.get("redis-conn-port").toInt)
@@ -41,7 +41,7 @@ class LakeAnalyzer extends RichWindowFunction[BasicObservation, String, Tuple, T
     this.rconn = RClient()
   }
 
-  def apply(key: Tuple, window: TimeWindow, input: Iterable[BasicObservation], out: Collector[String]): Unit = {
+  def apply(key: Tuple, window: TimeWindow, input: Iterable[BasicNumericObservation], out: Collector[String]): Unit = {
 
     /**
       * To use rLakeAnalyzer, the depth of every sensor is needed, so the
@@ -55,7 +55,7 @@ class LakeAnalyzer extends RichWindowFunction[BasicObservation, String, Tuple, T
     val depthEntries = input.map(x =>
       Array(
         x.phenomenontimestart / 1000,
-        x.value, {
+        x.numericalObservation, {
           val tmp = this.redisCon.get(x.feature + "::" + x.procedure + "::" + x.observableproperty + "::depth"); if (tmp.isDefined) tmp.get.toInt else -100
         }
       )

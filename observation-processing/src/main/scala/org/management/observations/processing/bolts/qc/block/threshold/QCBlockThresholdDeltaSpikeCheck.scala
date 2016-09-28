@@ -3,6 +3,7 @@ package org.management.observations.processing.bolts.qc.block.threshold
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
 import org.apache.flink.api.java.utils.ParameterTool
+import org.management.observations.processing.tuples.BasicNumericObservation
 
 // The function being extended and related
 import org.apache.flink.streaming.api.scala.function.RichWindowFunction
@@ -46,7 +47,7 @@ import scala.collection.JavaConversions._
   * - This test is used for three concurrent observations, for
   *     larger windows, a separate acceleration test should be introduced.
   */
-class QCBlockThresholdDeltaSpikeCheck extends RichWindowFunction[SemanticObservation, QCOutcomeQuantitative, Tuple, GlobalWindow] with SemanticObservationFlow{
+class QCBlockThresholdDeltaSpikeCheck extends RichWindowFunction[BasicNumericObservation, QCOutcomeQuantitative, Tuple, GlobalWindow] with SemanticObservationFlow{
 
   @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
   @transient var redisCon: RedisClient = new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
@@ -56,7 +57,7 @@ class QCBlockThresholdDeltaSpikeCheck extends RichWindowFunction[SemanticObserva
     this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
-  def apply(key: Tuple, window: GlobalWindow, input: Iterable[SemanticObservation], out: Collector[QCOutcomeQuantitative]): Unit = {
+  def apply(key: Tuple, window: GlobalWindow, input: Iterable[BasicNumericObservation], out: Collector[QCOutcomeQuantitative]): Unit = {
 
     // Retrieve the meta-data fields from the key and window elements
     val feature: String = key.getField(0).toString
@@ -70,7 +71,7 @@ class QCBlockThresholdDeltaSpikeCheck extends RichWindowFunction[SemanticObserva
       */
     if(input.size == 3) {
 
-      val sortedWindow: List[Double] = input.toList.sortBy(_.phenomenontimestart).map(_.numericalObservation.get)
+      val sortedWindow: List[Double] = input.toList.sortBy(_.phenomenontimestart).map(_.numericalObservation)
       val observationDeltaA: Double = math.abs(sortedWindow(0) - sortedWindow(1))
       val observationDeltaB: Double = math.abs(sortedWindow(1) - sortedWindow(2))
       val observationDeltaC: Double = math.abs(sortedWindow(0) - sortedWindow(2))
@@ -89,7 +90,7 @@ class QCBlockThresholdDeltaSpikeCheck extends RichWindowFunction[SemanticObserva
       if(deltaTests.isDefined) {
         val individualTests: Array[String] = deltaTests.get.split("::")
 
-        val middleObs: Option[SemanticObservation] = input.toList.sortBy(_.phenomenontimestart).lift(1)
+        val middleObs: Option[BasicNumericObservation] = input.toList.sortBy(_.phenomenontimestart).lift(1)
 
         // Call the test iterator
         processTest(individualTests, middleObs, observationDelta, input.head.phenomenontimestart)
@@ -113,7 +114,7 @@ class QCBlockThresholdDeltaSpikeCheck extends RichWindowFunction[SemanticObserva
       *                         or a single point's time instant.
       */
     def processTest(testList: Array[String],
-                    observations: Iterable[SemanticObservation],
+                    observations: Iterable[BasicNumericObservation],
                     observationValue: Double,
                     timeInstantMilli: Long): Unit = {
 

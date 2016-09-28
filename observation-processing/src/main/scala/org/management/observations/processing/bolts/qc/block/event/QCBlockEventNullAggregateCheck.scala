@@ -3,7 +3,7 @@ package org.management.observations.processing.bolts.qc.block.event
 // Used for connecting to the Redis registry
 import com.redis.RedisClient
 import org.apache.flink.api.java.utils.ParameterTool
-import org.management.observations.processing.tuples.{QCOutcomeQualitative, SemanticObservation}
+import org.management.observations.processing.tuples.{QCOutcomeQualitative}
 
 // The base class for the key tuple, in this case Tuple3
 import org.apache.flink.api.java.tuple.Tuple

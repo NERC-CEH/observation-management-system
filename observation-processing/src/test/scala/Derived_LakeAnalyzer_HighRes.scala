@@ -12,7 +12,7 @@ import org.management.observations.processing.bolts.derived.LakeAnalyzer
 import org.management.observations.processing.bolts.qc.block.threshold.{QCBlockThresholdDeltaSpikeCheck, QCBlockThresholdDeltaStepCheck, QCBlockThresholdRangeCheck, QCBlockThresholdSigmaCheck}
 import org.management.observations.processing.bolts.routing.InjectRoutingInfo
 import org.management.observations.processing.timing.LakeAnalyzerEventTime
-import org.management.observations.processing.tuples.{BasicObservation, RoutedObservation}
+import org.management.observations.processing.tuples.{BasicNumericObservation, RoutedObservation}
 import org.scalatest.junit.JUnitRunner
 
 // Core Flink related libraries
@@ -62,24 +62,15 @@ class Derived_LakeAnalyzer_HighRes extends FunSuite {
       .flatMap(new InjectRoutingInfo)
 
 
-    val laHighTupleStream: DataStream[BasicObservation] = observationStream
+    val laHighTupleStream: DataStream[BasicNumericObservation] = observationStream
       .filter(_.routes.map(_.model).contains(params.get("routing-derived-lake-analyzer-high-res")))
-      .map(x =>
-        new BasicObservation(
-          x.observation.feature,
-          x.observation.procedure,
-          x.observation.observableproperty,
-          x.routes.filter(_.model == params.get("routing-derived-lake-analyzer-high-res")).head.key,
-          x.observation.phenomenontimestart,
-          x.observation.phenomenontimeend,
-          x.observation.numericalObservation.get
-        )
+      .map(x => x.observation
       )
       .assignTimestampsAndWatermarks(new LakeAnalyzerEventTime)
 
 
     val laDerivedStream: DataStream[String] = laHighTupleStream
-      .keyBy("feature")
+      .keyBy("routingkey")
       .window(TumblingEventTimeWindows.of(Time.hours(2)))
       .apply(new LakeAnalyzer())
 

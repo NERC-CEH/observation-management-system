@@ -4,6 +4,7 @@ package org.management.observations.processing.bolts.qc.block.threshold
 import com.redis.RedisClient
 import org.apache.flink.api.java.utils.ParameterTool
 import org.management.observations.processing.ProjectConfiguration
+import org.management.observations.processing.tuples.BasicNumericObservation
 
 import scala.collection.JavaConversions._
 
@@ -44,7 +45,7 @@ import java.time.{LocalDateTime, ZoneOffset}
   * - This test is used for two concurrent observations, for
   *     larger windows, a separate acceleration test should be introduced.
   */
-class QCBlockThresholdDeltaStepCheck extends RichWindowFunction[SemanticObservation, QCOutcomeQuantitative, Tuple, GlobalWindow] with SemanticObservationFlow{
+class QCBlockThresholdDeltaStepCheck extends RichWindowFunction[BasicNumericObservation, QCOutcomeQuantitative, Tuple, GlobalWindow] with SemanticObservationFlow{
 
   // Create the connection to the registry
   @transient var params: ParameterTool = ParameterTool.fromMap(mapAsJavaMap(ProjectConfiguration.configMap))
@@ -55,7 +56,7 @@ class QCBlockThresholdDeltaStepCheck extends RichWindowFunction[SemanticObservat
     this.redisCon =  new RedisClient(params.get("redis-conn-ip"),params.get("redis-conn-port").toInt)
   }
 
-  def apply(key: Tuple, window: GlobalWindow, input: Iterable[SemanticObservation], out: Collector[QCOutcomeQuantitative]): Unit = {
+  def apply(key: Tuple, window: GlobalWindow, input: Iterable[BasicNumericObservation], out: Collector[QCOutcomeQuantitative]): Unit = {
 
     // Retrieve the meta-data fields from the key and window elements
     val feature: String = key.getField(0).toString
@@ -67,11 +68,11 @@ class QCBlockThresholdDeltaStepCheck extends RichWindowFunction[SemanticObservat
     // The check for > 2 is necessary, as the window can trigger with only one
     val observationDelta: Option[Double] = {
       if(input.size == 2){
-        Some(math.abs(input.map(_.numericalObservation.get).reduce(_-_)))
+        Some(math.abs(input.map(_.numericalObservation).reduce(_-_)))
       }else if(input.size > 2){
-        val minVal = input.min(Ordering.by((s:SemanticObservation) => s.phenomenontimestart))
-        val maxVal = input.max(Ordering.by((s:SemanticObservation) => s.phenomenontimestart))
-        Some(math.abs(minVal.numericalObservation.get - maxVal.numericalObservation.get))
+        val minVal = input.min(Ordering.by((s:BasicNumericObservation) => s.phenomenontimestart))
+        val maxVal = input.max(Ordering.by((s:BasicNumericObservation) => s.phenomenontimestart))
+        Some(math.abs(minVal.numericalObservation - maxVal.numericalObservation))
       }else{
         None
       }
@@ -113,7 +114,7 @@ class QCBlockThresholdDeltaStepCheck extends RichWindowFunction[SemanticObservat
       *                         or a single point's time instant.
       */
     def processTest(testList: Array[String],
-                    observations: Iterable[SemanticObservation],
+                    observations: Iterable[BasicNumericObservation],
                     observationValue: Double,
                     timeInstantMilli: Long): Unit = {
 

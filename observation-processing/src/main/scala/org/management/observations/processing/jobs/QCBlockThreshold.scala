@@ -3,7 +3,7 @@ package org.management.observations.processing.jobs
 // Execution environment
 import org.apache.flink.api.common.ExecutionConfig
 import org.apache.flink.api.java.utils.ParameterTool
-import org.management.observations.processing.tuples.RoutedObservation
+import org.management.observations.processing.tuples.{BasicNumericObservation, RoutedObservation}
 
 // Used to provide serializer/deserializer information for user defined objects
 // to place onto the Kafka queue
@@ -144,7 +144,7 @@ object QCBlockThreshold {
       */
     // TODO: move to iterative fold then apply technique
 
-    val sigmaObservationTimeStream: DataStream[SemanticObservation] = observationStream
+    val sigmaObservationTimeStream: DataStream[BasicNumericObservation] = observationStream
       .filter(_.routes.map(_.model).contains(params.get("routing-qc-block-threshold-sigma")))
       .map(_.observation)
       .assignAscendingTimestamps(_.phenomenontimestart)
@@ -183,7 +183,7 @@ object QCBlockThreshold {
       * change.
       */
 
-    val deltaObservationTimeStream: DataStream[SemanticObservation] = observationStream
+    val deltaObservationTimeStream: DataStream[BasicNumericObservation] = observationStream
       .filter(_.routes.map(_.model).contains(params.get("routing-qc-block-threshold-delta")))
       .map(_.observation)
       .assignAscendingTimestamps(_.phenomenontimestart)

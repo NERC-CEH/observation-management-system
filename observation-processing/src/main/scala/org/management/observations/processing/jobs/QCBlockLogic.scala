@@ -42,6 +42,10 @@ import scala.collection.JavaConversions._
   *     order and is the intended observation spacing exceeded.
   *
   * - generate default 'pass' outcomes for metadata based checks
+  *
+  * This block can be used with any observation type, as it is the metadata
+  * associated with the observation rather than the observation itself that
+  * is checked.
   */
 
 object QCBlockLogic extends SemanticObservationFlow{

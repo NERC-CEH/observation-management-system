@@ -2,7 +2,7 @@ package org.management.observations.processing.timing
 
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks
 import org.apache.flink.streaming.api.watermark.Watermark
-import org.management.observations.processing.tuples.BasicObservation
+import org.management.observations.processing.tuples.BasicNumericObservation
 
 /**
   * LakeAnalyzerEventTime
@@ -13,7 +13,7 @@ import org.management.observations.processing.tuples.BasicObservation
   * - Allow windows to have out of order events up to maxOutOfOrderness value,
   *   measured in milliseconds, in this case, two hours
   */
-class LakeAnalyzerEventTime extends AssignerWithPeriodicWatermarks[BasicObservation]{
+class LakeAnalyzerEventTime extends AssignerWithPeriodicWatermarks[BasicNumericObservation]{
 
   /**
     * All values below are defined in milliseconds, with currentMaxTimestamp
@@ -24,7 +24,7 @@ class LakeAnalyzerEventTime extends AssignerWithPeriodicWatermarks[BasicObservat
   private var lastEmittedWatermark: Long = 0
   private val maxOutOfOrderness: Long = 14400000
 
-  def extractTimestamp(obsTup: BasicObservation, prevTime: Long): Long = {
+  def extractTimestamp(obsTup: BasicNumericObservation, prevTime: Long): Long = {
 
     val curTimestamp: Long = obsTup.phenomenontimestart
 
