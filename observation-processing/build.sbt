@@ -60,5 +60,9 @@ libraryDependencies += "org.apache.commons" % "commons-math3" % "3.6.1"
 libraryDependencies += "junit" % "junit" % "4.10" % "test"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 
+/**
+  * R Interfacing library
+  */
+libraryDependencies += "org.ddahl" % "rscala_2.11" % "1.0.13"
 
 // sbt 'set test in assembly := {}' clean assembly
