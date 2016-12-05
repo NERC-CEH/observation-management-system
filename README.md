@@ -26,7 +26,19 @@ There are three main technologies this project builds upon:
 * Apache Flink
 * Apache Cassandra
 
-Kafka is the message-queue software that is used to logically store data between processing bolts and before entry into the database.  Cassandra is the persistent storage used to store the observation data and the processed data.  Flink is the processing framework that was chosen over Apache Storm and Apache Spark.  While at present Spark appears to have better distributed ML libraries, there are many third-party Scala libraries that can make up this deficit.
+Kafka is the message-queue software that is used to logically store data between processing bolts and before entry into the database.  Cassandra is the persistent storage used to store the observation data and the processed data.  Flink is the processing framework that was chosen over Apache Storm and Apache Spark (due to needed capabilities, best summed up [here](http://beam.incubator.apache.org/beam/capability/2016/03/17/capability-matrix.html).  While at present Spark appears to have better distributed ML libraries, there are many third-party Scala libraries that can make up this deficit.  For the aggregation from multiple networks and potential two-way communication, Apache Nifi appears the best choice.
+
+### Related Software Not Used
+
+* Prometheus
+* Graphite (and the more relevant Cyanite) + Grafana
+* InfluxDB
+* openTSDB
+* KairosDB
+* ElasticSearch + Kibana
+* OpenMCT
+
+
 
 ## Types of Data
 

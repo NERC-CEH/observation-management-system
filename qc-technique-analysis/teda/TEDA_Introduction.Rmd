@@ -656,39 +656,45 @@ generate_delta_teda_vect = function(observations){
   return(observations)
 }
 
-generate_sigma_teda_vect = function(observations,window_size){
+generate_sigma_teda_vect = function(observations,window_size, tumbling = FALSE){
+
+  by_obs = 1
   
-  sd_vals = roll_sd(x=observations$value,
-                    n=window_size,
-                    by=1,
-                    align="center",
-                    na.rm=TRUE)
+  if (tumbling == TRUE)
+    by_obs = (window_size - 1)
+  
+  var_vals = roll_var(x = observations$value,
+                    n = window_size,
+                    by = by_obs,
+                    align = "center",
+                    na.rm = TRUE)
   
   edge_buffer = (window_size - 1) / 2
-  observations = observations[(1+edge_buffer):(dim(observations)[1]-edge_buffer)]
-  observations$sd_vals = sd_vals
+  #observations = observations[(1 + edge_buffer):(dim(observations)[1] - edge_buffer),]
+  observations$sigma = NA
+  observations$sigma[(1+edge_buffer):(dim(observations)[1] - edge_buffer)] = var_vals
 
-    # Generate the eccentricities
-  observation_sd_vals = data.frame(sd_vals)
-  colnames(observation_sd_vals) = c("value")
-  observation_sd_vals = evaluate_teda_vect(observation_sd_vals)
+  # Generate the eccentricities
+  observation_var_vals = data.frame(var_vals)
+  colnames(observation_var_vals) = c("value")
+  observation_var_vals = evaluate_teda_vect(observation_var_vals)
   
   # Augment the original data frame and return
   observations$eccentricity = NA
-  observations$eccentricity[(1+edge_buffer):(dim(observations)[1]-edge_buffer)] =
-    observation_sd_vals$eccentricity
+  observations$eccentricity[(1 + edge_buffer):(dim(observations)[1] - edge_buffer)] =
+    observation_var_vals$eccentricity
   
   observations$norm_eccentricity = NA
-  observations$norm_eccentricity[(1+edge_buffer):(dim(observations)[1]-edge_buffer)] =
-    observation_sd_vals$norm_eccentricity
+  observations$norm_eccentricity[(1 + edge_buffer):(dim(observations)[1] - edge_buffer)] =
+    observation_var_vals$norm_eccentricity
   
   observations$threshold = NA
-  observations$threshold[(1+edge_buffer):(dim(observations)[1]-edge_buffer)] =
-    observation_sd_vals$threshold
+  observations$threshold[(1 + edge_buffer):(dim(observations)[1] - edge_buffer)] =
+    observation_var_vals$threshold
   
   observations$outlier = NA
-  observations$outlier[(1+edge_buffer):(dim(observations)[1]-edge_buffer)] =
-    observation_sd_vals$outlier  
+  observations$outlier[(1 + edge_buffer):(dim(observations)[1] - edge_buffer)] =
+    observation_var_vals$outlier  
   
   return(observations)
 }
@@ -859,57 +865,50 @@ ggplot(delta_observations, aes(x=value)) +
 
 #### Dry Bulb Temperature - Sigma (variance)
 
-Todo.
+The plot below shows variance, calculated over a seven hour sliding (rather than tumbling) window, without taking into account potential gaps in the time-sequence (of which some do exist).  There are clear spikes in the winter months where the temperature can drop overnight, and in the spring-summer months where the temperature can rise high during the day.
 
-```{r evaluation-ecn-drybulb-delta-2}
+```{r evaluation-ecn-drybulb-sigma}
 
+# Use a sliding, rather than tumbling windod (i.e. no 'by' parameter)
 
-#  sd_vals_3 = roll_sd(x=dataset[,get(column)],n=window_size,na.rm=TRUE)
+  sigma_observations = generate_sigma_teda_vect(dry_temp, 7)
 
+  ggplot(sigma_observations) +
+   geom_point(aes(x=doy,y=sigma),colour="#000099") +
+    facet_grid(year ~ .) +
+  ylab("Variance") +
+  xlab("Day of Year") +
+  ggtitle("Temperature Sigma of 7 Consecutive Observations")
+  
+```
 
-# 
-# 
-# 
-# # Holder for the eccentricity
-# ecc = c()
-# 
-# # Holder for the state values
-# previous_mean = delta$deltas[1]
-# previous_var = 0
-# 
-# # For each observation in the dataset
-# for(k in 1:length(delta$deltas)){
-#   curr_vals = rec_teda(delta$deltas[k], previous_mean, previous_var, k)
-#   previous_mean = curr_vals[1]
-#   previous_var = curr_vals[2]
-#   ecc = c(ecc,curr_vals[3])
-# 
-# }
-# 
-# dry_temp$delta = c(0,delta$deltas)
-# dry_temp$ecc = c(0,ecc)
-# dry_temp$norm_ecc = dry_temp$ecc /2
-# thresh = 5/(2*(1:17519))
-# dry_temp$thresh = c(0,thresh)
-# dry_temp$outlier = dry_temp$norm_ecc > dry_temp$thresh
-# 
-# dry_temp = dry_temp[!is.na(dry_temp$outlier),]
-# 
-# ggplot(dry_temp) +
-#   geom_point(aes(x=doy, y=delta,
-#                  colour = outlier)) +
-#   facet_grid(year ~ .)
-# 
-# 
-# ggplot(dry_temp) +
-#   geom_point(aes(x=doy, y=delta,
-#                  colour = outlier)) +
-#   facet_grid(year ~ outlier)
-# 
-# ggplot(dry_temp) +
-#   geom_point(aes(x=doy, y=value,
-#                  colour = outlier)) +
-#   facet_grid(year ~ outlier)
+Using the same data as above, but this time highlighting the eccentric values we get the following output:
+
+```{r evaluation-ecn-drybulb-sigma-2}
+ggplot(sigma_observations) +
+  geom_point(aes(x=doy,y=sigma, colour = outlier)) +
+  facet_grid(year ~ .)+
+  ylab("Variance") +
+  xlab("Date Time") +
+  ggtitle("Temperature Sigma of 7 Consecutive Observations") +
+  scale_colour_manual(name = "Outlier?",
+                      values = c("#000099",'#ffff66'))    
+
+```
+
+Similarly, with a larger window size of 13 consecutive observations, we see that the normal distance range is greater due to the window size being larger, and so fewer observations are marked as being eccentric.
+
+```{r evaluation-ecn-drybulb-sigma-22}
+  sigma_observations = generate_sigma_teda_vect(dry_temp, 13)
+
+ggplot(sigma_observations) +
+  geom_point(aes(x=doy,y=sigma, colour = outlier)) +
+  facet_grid(year ~ .)+
+  ylab("Variance") +
+  xlab("Date Time") +
+  ggtitle("Temperature Sigma of 13 Consecutive Observations") +
+  scale_colour_manual(name = "Outlier?",
+                      values = c("#000099",'#ffff66'))    
 
 ```
 
