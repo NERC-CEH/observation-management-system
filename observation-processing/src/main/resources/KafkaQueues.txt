@@ -1,0 +1,15 @@
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic raw-observations
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic raw-observations-malformed
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic observation-persist
+
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic observation-qc-logic
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic observation-qc-threshold
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic qc-quantitative-persist
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic qc-qualitative-persist
+
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic meta-observations
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic meta-quantitative-persist
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic meta-qualitative-persist
+./kafka-topics.sh --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic meta-observations-malformed
+
+# Event related queues go here:
