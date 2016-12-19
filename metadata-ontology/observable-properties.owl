@@ -1,0 +1,439 @@
+Prefix: : <http://vocabs.ceh.ac.uk/monitoring-properties/>
+Prefix: dc: <http://purl.org/dc/elements/1.1/>
+Prefix: ns: <http://creativecommons.org/ns#>
+Prefix: owl: <http://www.w3.org/2002/07/owl#>
+Prefix: rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+Prefix: rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+Prefix: terms: <http://purl.org/dc/terms/>
+Prefix: xml: <http://www.w3.org/XML/1998/namespace>
+Prefix: xsd: <http://www.w3.org/2001/XMLSchema#>
+Prefix: cpm: <http://purl.org/voc/cpm#>
+Prefix: mp: <http://vocabs.ceh.ac.uk/mp/>
+Prefix: op: <http://registry2.it.csiro.au/def/property/>
+Prefix: opu: <http://registry2.it.csiro.au/def/unit/>
+Prefix: dbr: <http://dbpedia.org/resource/>
+Prefix: skos: <http://www.w3.org/2004/02/skos/core#>
+Prefix: envthes: <http://vocabs.lter-europe.net/EnvThes/>
+
+Ontology: <http://vocabs.ceh.ac.uk/monitoring-properties/>
+<http://vocabs.ceh.ac.uk/monitoring-properties/1.0.0>
+
+Import: <http://purl.org/voc/cpm>
+Import: <http://www.w3.org/2004/02/skos/core>
+
+# =============================================================================
+# Linking to EnvThes and CSIRO
+# =============================================================================
+# Definitions of EnvThes individuals used within this ontology.  Necessary for
+#  successful import into Protege for validation/verification
+
+# ObjectOfInterest Imports
+# =================================
+# Atmosphere
+Individual: mp:Concept_1
+# Carbon Dioxide:
+Individual: mp:USLterCV_89
+# Solar Radiation:
+Individual: mp:Concept_6
+# Wind
+Individual: mp:Concept_2
+# Oxygen
+Individual: mp:USLterCV_397
+# Chlorophyll A:
+Individual: mp:USLterCV_103
+# Phycocyanin:
+Individual: mp:cpm_8
+
+# Property Imports
+# =================================
+# Temperature
+Individual: mp:USLterCV_579
+# Electrical Conductivity
+Individual: mp:USLterCV_176
+# Specific Electrical Conductivity
+Individual: mp:Concept_4
+# Pressure
+Individual: mp:AF_c2_2708
+# Concentration:
+Individual: mp:10073
+# Irradiance@Wavelength
+Individual: mp:USLterCV_274
+# Speed
+Individual: mp:1
+# Direction
+Individual: mp:3
+# Saturation
+Individual: mp:Concept_12
+# Acidity
+Individual: mp:Concept_5
+# Relative Humidity
+Individual: mp:USLterCV_463
+# Dew Point
+Individual: mp:Concept_15
+# Absolute Humidity
+Individual: mp:Concept_13
+
+# Matrix Imports
+# =================================
+# Freshwater
+Individual: mp:Concept_0
+# Air
+Individual: mp:23
+
+# Unit Imports
+# =================================
+# Degrees Celsius
+Individual: mp:EUUnits_5
+# Milli Siemens Per Centimetre
+Individual: mp:cpm_10
+# Millibar
+Individual: mp:cpm_11
+# Milligrams per litre
+Individual: mp:EUUnits_129
+# Watts per metre square
+Individual: mp:EUUnits_192
+# Micro Mol per metre square per second
+Individual: mp:Concept_9
+# Metre per second
+Individual: mp:EUUnits_113
+# Arc-Degree
+Individual: mp:Concept_10
+# Micro Siemens Per Centimetre
+Individual: mp:cpm_12
+# Percent:
+Individual: mp:EUUnits_3
+# pH:
+Individual: mp:EnvEU_246
+# Volt:
+Individual: mp:EUUnits_186
+# Grams per metre cubed:
+Individual: mp:EUUnits_101
+# Cells per milli litre
+Individual: mp:Concept_11
+
+# Constraint Imports
+# Dissolved:
+Individual: mp:cpm_5
+
+# Realm Feature
+# Lake:
+Individual: mp:cpm_3
+
+# CSIRO OP Imports
+# =================================
+# Air Temperature
+Individual: op:air_temperature
+# Water Temperature
+Individual: op:_water_temperature
+# Electrical Conductivity
+Individual: op:_electrical_conductivity_water
+# Specific Electrical Conductivity
+Individual: op:_electrical_conductivity_water_at_25C
+# Barometric/atmospheric Pressure
+Individual: op:_air_pressure
+# Total Dissolved Carbon Dioxide Concentration
+Individual: op:_carbon_dioxide_concentration
+# Dissolved Oxygen Concentration
+Individual: op:_oxygen-dissolved
+# Acidity/pH
+Individual: op:_PH
+# Chlorophyll A Concentration
+Individual: op:chlorophyll_a_concentration
+# Dew Point Temperature
+Individual: op:_dew_point_temperature
+
+# EnvThes Measure Imports
+# =================================
+# Lake Temperature
+Individual: envthes:10011
+# Air Temperature
+Individual: envthes:USLterCV_22
+# Conductivity
+Individual: envthes:USLterCV_122
+# Specific Conductivity
+Individual: envthes:USLterCV_548
+# Atmospheric Pressure
+Individual: envthes:USLterCV_50
+# Dissolved Organic Carbon in Water
+Individual: envthes:10307
+# Wind Speed
+Individual: envthes:USLterCV_635
+# Wind Direction
+Individual: envthes:USLterCV_634
+# Dissolved Oxygen
+Individual: envthes:USLterCV_161
+# Acidity of Water
+Individual: envthes:USLterCV_11
+# Chlorophyll content of water
+Individual: envthes:10088
+# Air Humidity
+Individual: envthes:EnvEu_114
+# Dew Point
+Individual: envthes:USLterCV_150
+
+# Object Property Definitions
+# =================================
+
+ObjectProperty: forProperty
+    SubPropertyOf: cpm:property
+    Annotations: rdfs:comment "Property added to enable import into Protege as
+    when using the cpm:property fact, Protege expected a literal (anyURI) and not
+    an individual as it decided cpm:property was the DataPropety, not ObjectProperty
+    of the same name."
+
+ObjectProperty: constraintPropertyMod
+    SubPropertyOf: cpm:constraintProperty
+    Annotations: rdfs:comment "Property added to enable import into Protege as
+    when using the cpm:property fact, Protege expected a literal (anyURI) and not
+    an individual as it decided cpm:property was the DataPropety, not ObjectProperty
+    of the same name."
+
+ObjectProperty: realmFeature
+    Annotations: rdfs:comment "Defining the feature type the property and matrix
+    relate to.  This gives context when the object of interest is not suitable
+    for the larger object the property relates to."
+
+
+#Individual: DissolvedConstraint
+#    Facts: cpm:constraintProperty mp:cpm_5
+
+
+
+
+
+# =============================================================================
+# Lake and Freshwater Properties
+# =============================================================================
+# Properties associated with the automated buoy sensor network, the long-term
+#  monitoring programme, and the Lakes Tour programme.
+
+Individual: FreshwaterLakeTemperature
+    Types: cpm:ObservableProperty
+    Facts: cpm:unitOfMeasure mp:EUUnits_5,
+           cpm:matrix mp:23,
+           forProperty mp:USLterCV_579,
+           realmFeature mp:cpm_3,
+           skos:closeMatch op:_water_temperature,
+           skos:exactMatch envthes:10011
+    Annotations: rdfs:comment "The water temperature within a freshwater Lake."
+
+Individual: LakeAirTemperature
+    Types: cpm:ObservableProperty
+    Facts: cpm:unitOfMeasure mp:EUUnits_5,
+           cpm:matrix mp:Concept_0,
+           forProperty mp:USLterCV_579,
+           realmFeature mp:cpm_3,
+           skos:exactMatch op:air_temperature,
+           skos:exactMatch envthes:USLterCV_22
+    Annotations: rdfs:comment "The air temperature directly above the surface."
+
+Individual: FreshwaterLakeElectricalConductivity
+    Types: cpm:ObservableProperty
+    Facts: cpm:unitOfMeasure mp:cpm_10,
+           cpm:matrix mp:23,
+           forProperty mp:USLterCV_176,
+           realmFeature mp:cpm_3,
+           skos:closeMatch op:_electrical_conductivity_water,
+           skos:closeMatch envthes:USLterCV_122
+    Annotations: rdfs:comment "The uncorrected conductivity value of a freshwater
+    lake."
+
+Individual: FreshwaterLakeNormalisedElectricalConductivityMilli
+    Types: cpm:ObservableProperty
+    Facts: cpm:unitOfMeasure mp:cpm_10,
+           cpm:matrix mp:23,
+           forProperty mp:Concept_4,
+           realmFeature mp:cpm_3,
+           skos:closeMatch op:_electrical_conductivity_water_at_25C,
+           skos:exactMatch envthes:USLterCV_548
+    Annotations: rdfs:comment "The corrected/normalised conductivity value of a
+    freshwater lake measured in milli Siemens per centimetre."
+
+Individual: FreshwaterLakeNormalisedElectricalConductivityMicro
+    Types: cpm:ObservableProperty
+    Facts: cpm:unitOfMeasure mp:cpm_12,
+           cpm:matrix mp:23,
+           forProperty mp:Concept_4,
+           realmFeature mp:cpm_3,
+           skos:closeMatch op:_electrical_conductivity_water_at_25C,
+           skos:exactMatch envthes:USLterCV_548
+    Annotations: rdfs:comment "The corrected/normalised conductivity value of a
+    freshwater lake measured in micro Siemens per centimetre"
+
+Individual: LakeBarometricPressure
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:Concept_1,
+           cpm:unitOfMeasure mp:cpm_11,
+           cpm:matrix mp:Concept_0,
+           forProperty mp:AF_c2_2708,
+           realmFeature mp:cpm_3,
+           skos:closeMatch op:_air_pressure,
+           skos:exactMatch envthes:USLterCV_50
+    Annotations: rdfs:comment "The barometric or atmospheric pressure directly
+    above a lake."
+
+Individual: FreshwaterLakeDissolvedCarbonDioxide
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:USLterCV_89,
+           cpm:unitOfMeasure mp:EUUnits_129,
+           cpm:matrix mp:23,
+           constraintPropertyMod mp:cpm_5,
+           forProperty mp:10073,
+           realmFeature mp:cpm_3,
+           skos:closeMatch op:_carbon_dioxide_concentration,
+           skos:closeMatch envthes:10307
+    Annotations: rdfs:comment ""
+
+Individual: LakeAtmosphericSolarRadiationOne
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:Concept_6,
+           cpm:unitOfMeasure mp:EUUnits_192,
+           cpm:matrix mp:Concept_0,
+           forProperty mp:USLterCV_274,
+           realmFeature mp:cpm_3
+    Annotations: rdfs:comment ""
+
+Individual: LakeAtmosphericSolarRadiationTwo
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:Concept_6,
+           cpm:unitOfMeasure mp:Concept_9,
+           cpm:matrix mp:Concept_0,
+           forProperty mp:USLterCV_274,
+           realmFeature mp:cpm_3
+    Annotations: rdfs:comment ""
+
+Individual: LakeInternalSolarRadiationOne
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:Concept_6,
+           cpm:unitOfMeasure mp:Concept_9,
+           cpm:matrix mp:23,
+           forProperty mp:USLterCV_274,
+           realmFeature mp:cpm_3
+    Annotations: rdfs:comment ""
+
+Individual: LakeWindSpeed
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:Concept_2,
+           cpm:unitOfMeasure mp:EUUnits_113,
+           cpm:matrix mp:Concept_0,
+           forProperty mp:1,
+           realmFeature mp:cpm_3,
+           skos:exactMatch envthes:USLterCV_635
+    Annotations: rdfs:comment ""
+
+Individual: LakeWindDirection
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:Concept_2,
+           cpm:unitOfMeasure mp:Concept_10,
+           cpm:matrix mp:Concept_0,
+           forProperty mp:3,
+           realmFeature mp:cpm_3,
+           skos:exactMatch envthes:USLterCV_634
+    Annotations: rdfs:comment ""
+
+Individual: FreshwaterLakeDissolvedOxygenSaturation
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:USLterCV_397,
+           cpm:unitOfMeasure mp:EUUnits_3,
+           cpm:matrix mp:23,
+           constraintPropertyMod mp:cpm_5,
+           forProperty mp:Concept_12,
+           realmFeature mp:cpm_3,
+           skos:closeMatch op:_oxygen-dissolved,
+           skos:closeMatch envthes:USLterCV_161
+    Annotations: rdfs:comment ""
+
+Individual: FreshwaterLakeDissolvedOxygenConcentration
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:USLterCV_397,
+           cpm:unitOfMeasure mp:EUUnits_129,
+           cpm:matrix mp:23,
+           constraintPropertyMod mp:cpm_5,
+           forProperty mp:10073,
+           realmFeature mp:cpm_3,
+           skos:closeMatch op:_oxygen-dissolved,
+           skos:closeMatch envthes:USLterCV_161
+    Annotations: rdfs:comment ""
+
+Individual: FreshwaterLakeAcidity
+    Types: cpm:ObservableProperty
+    Facts: cpm:unitOfMeasure mp:EnvEU_246,
+           cpm:matrix mp:23,
+           forProperty mp:Concept_5,
+           realmFeature mp:cpm_3,
+           skos:closeMatch op:_PH,
+           skos:exactMatch envthes:USLterCV_11
+    Annotations: rdfs:comment ""
+
+Individual: FreshwaterLakeChlorophyllAConcentration
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:USLterCV_103,
+           cpm:unitOfMeasure mp:EUUnits_129,
+           cpm:matrix mp:23,
+           forProperty mp:10073,
+           realmFeature mp:cpm_3,
+           skos:closeMatch envthes:10088,
+           skos:exactMatch op:chlorophyll_a_concentration
+    Annotations: rdfs:comment ""
+
+Individual: FreshwaterLakeChlorophyllAVoltage
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:USLterCV_103,
+           cpm:unitOfMeasure mp:EUUnits_186,
+           cpm:matrix mp:23,
+           forProperty mp:10073,
+           realmFeature mp:cpm_3,
+           skos:closeMatch op:chlorophyll_a_concentration,
+           skos:closeMatch envthes:10088
+    Annotations: rdfs:comment ""
+
+Individual: FreshwaterLakePhycocyaninConcentration
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:cpm_8,
+           cpm:unitOfMeasure mp:Concept_11,
+           cpm:matrix mp:23,
+           forProperty mp:10073,
+           realmFeature mp:cpm_3
+    Annotations: rdfs:comment ""
+
+Individual: FreshwaterLakePhycocyaninVoltage
+    Types: cpm:ObservableProperty
+    Facts: cpm:objectOfInterest mp:cpm_8,
+           cpm:unitOfMeasure mp:EUUnits_186,
+           cpm:matrix mp:23,
+           forProperty mp:10073,
+           realmFeature mp:cpm_3
+    Annotations: rdfs:comment ""
+
+Individual: LakeRelativeHumidity
+    Types: cpm:ObservableProperty
+    Facts: cpm:unitOfMeasure mp:EUUnits_3,
+           cpm:matrix mp:Concept_0,
+           forProperty mp:USLterCV_463,
+           realmFeature mp:cpm_3,
+           skos:closeMatch envthes:EnvEu_114
+    Annotations: rdfs:comment ""
+
+Individual: LakeAbsoluteHumidity
+    Types: cpm:ObservableProperty
+    Facts: cpm:unitOfMeasure mp:EUUnits_101,
+           cpm:matrix mp:Concept_0,
+           forProperty mp:Concept_13,
+           realmFeature mp:cpm_3,
+           skos:closeMatch envthes:EnvEu_114
+    Annotations: rdfs:comment ""
+
+Individual: LakeDewPointTemperature
+    Types: cpm:ObservableProperty
+    Facts: cpm:unitOfMeasure mp:EUUnits_5,
+           cpm:matrix mp:Concept_0,
+           forProperty mp:Concept_15,
+           realmFeature mp:cpm_3,
+           skos:exactMatch envthes:USLterCV_150,
+           skos:exactMatch op:_dew_point_temperature
+    Annotations: rdfs:comment ""
+
+
+# Ecological Change Network
+# =============================================================================
+# Properties associated with the automated weather station network.

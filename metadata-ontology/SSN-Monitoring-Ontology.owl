@@ -1,0 +1,886 @@
+Prefix: : <http://vocabs.ceh.ac.uk/monitoring-ontology/>
+Prefix: dc: <http://purl.org/dc/elements/1.1/>
+Prefix: foaf: <http://xmlns.com/foaf/0.1/>
+Prefix: ns: <http://creativecommons.org/ns#>
+Prefix: owl: <http://www.w3.org/2002/07/owl#>
+Prefix: rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+Prefix: rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+Prefix: ssn: <https://www.w3.org/ns/ssn/>
+Prefix: terms: <http://purl.org/dc/terms/>
+Prefix: time: <http://www.w3.org/2006/time#>
+Prefix: xml: <http://www.w3.org/XML/1998/namespace>
+Prefix: xsd: <http://www.w3.org/2001/XMLSchema#>
+Prefix: geowgs: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+Prefix: geo: <http://www.opengis.net/ont/geosparql#>
+Prefix: cpm: <http://purl.org/voc/cpm#>
+
+Ontology: <http://vocabs.ceh.ac.uk/monitoring-ontology/>
+<http://vocabs.ceh.ac.uk/monitoring-ontology/1.0.0>
+
+Import: <https://www.w3.org/ns/ssn>
+Import: <http://xmlns.com/foaf/0.1/>
+Import: <http://www.w3.org/2006/time>
+Import: <http://www.w3.org/2003/01/geo/wgs84_pos>
+Import: <http://www.opengis.net/ont/geosparql>
+Import: <http://purl.org/voc/cpm>
+
+# DEPLOYMENT
+# =============================================================================
+
+# Every sensor which has a unique reference ID will have a deployment instance,
+#   whether it is a sub-component of a sensing system or not.  This allows tracking
+#   of what sub-components were attached during different deployments, as these
+#   may change.  For example an underwater sonde may be deployed and be regarded
+#   as a single system, but can have multiple instruments such as temperature,
+#   salinity, turbidity, and other sensors attached.  The instruments deployed at
+#   one instant may not be consistently deployed together in the future, they may
+#   also be changed or swapped during a single deployment.
+#
+#   This also allows finer granularity when specifying which particular deployments
+#   are affected by any cleaning or maintenance work, and to allow the addition
+#   to or removal from sensing systems of individual components during deployment.
+#
+# The enforcing of this relationship, of a deployment only being applicable to a
+#   single sensor, is handled by creating an "OverloadedDeployment" class, that
+#   highlights when this rule is broken.
+
+# When adding a deployment of a sensing system that is made up of sub-components,
+#   the deployment associated with the sub-components will be linked to the
+#   deployment of the sensing system they're attached to via the "partOfDeployment"
+#   object property.
+
+Class: SingleSystemDeployment
+    SubClassOf: ssn:Deployment
+    Annotations: rdfs:comment "A deployment of a single physical sensor (which
+    may be made up of sub-components, but those parts have their own deployment)."
+
+Class: OverloadedDeployment
+    SubClassOf: ssn:Deployment
+    EquivalentTo: ssn:deployedSystem min 2
+    Annotations: rdfs:comment "A deployment instance that has too many systems
+    attached and needs to be investigated."
+
+ObjectProperty: partOfDeployment
+   Domain: SingleSystemDeployment
+   Range: SingleSystemDeployment
+   Annotations: rdfs:comment "Links between a sub-component's deployment instance
+   and the deployment instance of the system the sub-component is attached to."
+
+ObjectProperty: containsSubDeployment
+  Domain: SingleSystemDeployment
+  Range: SingleSystemDeployment
+  InverseOf: partOfDeployment
+  Annotations: rdfs:comment "Links between deployment instance for a system that
+  has at least one sub-component, and the deployment instances for the attached
+  sub-component(s)."
+
+# A sensor can be deployed multiple times, and have multiple deployment processes
+#   and deployment states depending on its current object properties.  The
+#   possible known deployment processes are: Installation, Removal, Cleaning,
+#   Maintenance, and ProgramChange, though the last process refers to the logger
+#   rather than individual sensors.
+#
+# These classes are not disjoint, as an installation duration of one sensor may
+#   coincide with the removal of another sensor, so that they can share the same
+#   process.  Similarly, a cleaning and maintenance schedule may occur at the
+#   same time, or a sensor may be removed during a maintenance period.  Because
+#   of this flexibility, while the classes are not disjoint, the object
+#   properties are, such that a deployment's installation process cannot be the
+#   same instance as the removal process.
+#
+# The base process is a subclass of time:TemporalEntity, and will be used with
+#   TimeInstant entities to represent the beginning and end of a process.  A
+#   process can be carried out by multiple foaf:Person instances.
+#
+# Disjoint installation and removal properties, as we do not want to say a
+#   sensor was installed and removed at the same time, this is a non-event, and
+#   instead, if an attempt to fit a sensor failed, it is better to refer to it
+#   as a maintenance period of the sensors that it did affect.
+
+Class: DeploymentRelatedProcessDuration
+    SubClassOf: ssn:DeploymentRelatedProcess
+    SubClassOf: time:TemporalEntity
+    Annotations: rdfs:comment "An extension of DeploymentRelatedProcess, that
+    specifically has a temporal duration associated with it, as all sub-classes
+    are descriptions of actions that have a clear start and end time instant."
+
+ObjectProperty: carriedOutBy
+   Domain: DeploymentRelatedProcessDuration
+   Range: foaf:Person
+   Annotations: rdfs:comment "Links to the person who carried out the process,
+   there can be multiple people associated with a single process."
+
+ObjectProperty: carriedOut
+   Domain: foaf:Person
+   Range: DeploymentRelatedProcessDuration
+   InverseOf: carriedOutBy
+   Annotations: rdfs:comment "Links to the process that the person carried out,
+   there can be multiple processes associated with a single person."
+
+# The process subclass object properties, including the disjoint constraints
+
+ObjectProperty: deploymentInstallation
+   SubPropertyOf: ssn:deploymentProcessPart
+   Characteristics: Asymmetric
+   DisjointWith: deploymentRemoval
+   Domain: SingleSystemDeployment
+   Range: DeploymentRelatedProcessDuration
+   Annotations: rdfs:comment "Indicates that a single system deployment has
+   been installed using the linked deployment related process duration."
+
+ObjectProperty: hasInstalledDeployment
+   SubPropertyOf: ssn:deploymentProcessPart
+   InverseOf: deploymentInstallation
+   Characteristics: Asymmetric
+   DisjointWith: hasRemovedDeployment
+   Domain: DeploymentRelatedProcessDuration
+   Range: SingleSystemDeployment
+   Annotations: rdfs:comment "Indicates that the deployment related process
+   duration has been used to install the linked deployments."
+
+ObjectProperty: deploymentRemoval
+   SubPropertyOf: ssn:deploymentProcessPart
+   Characteristics: Asymmetric
+   DisjointWith: deploymentInstallation
+   Domain: SingleSystemDeployment
+   Range: DeploymentRelatedProcessDuration
+   Annotations: rdfs:comment "Indicates that a deployment has been
+   removed using the linked deployment related process duration."
+
+ObjectProperty: hasRemovedDeployment
+   SubPropertyOf: ssn:deploymentProcessPart
+   InverseOf: deploymentRemoval
+   Characteristics: Asymmetric
+   DisjointWith: hasInstalledDeployment
+   Domain: DeploymentRelatedProcessDuration
+   Range: SingleSystemDeployment
+   Annotations: rdfs:comment "Indicates that a deployment related process
+   duration has been used to remove the linked deployments."
+
+ObjectProperty: deploymentCleaning
+   SubPropertyOf: ssn:deploymentProcessPart
+   Characteristics: Asymmetric
+   Domain: SingleSystemDeployment
+   Range: DeploymentRelatedProcessDuration
+   Annotations: rdfs:comment "Indicates that a deployment has been part
+   of a cleaning process."
+
+ObjectProperty: hasCleanedDeployment
+   SubPropertyOf: ssn:deploymentProcessPart
+   InverseOf: deploymentCleaning
+   Characteristics: Asymmetric
+   Domain: DeploymentRelatedProcessDuration
+   Range: SingleSystemDeployment
+   Annotations: rdfs:comment "Indicates that a cleaning process has affected a
+   deployment."
+
+ObjectProperty: deploymentMaintenance
+   SubPropertyOf: ssn:deploymentProcessPart
+   Characteristics: Asymmetric
+   Domain: SingleSystemDeployment
+   Range: DeploymentRelatedProcessDuration
+   Annotations: rdfs:comment "Indicates that a deployment has been part
+   of a maintenance process."
+
+ObjectProperty: hasMaintainedDeployment
+   SubPropertyOf: ssn:deploymentProcessPart
+   InverseOf: deploymentMaintenance
+   Characteristics: Asymmetric
+   Domain: DeploymentRelatedProcessDuration
+   Range: SingleSystemDeployment
+   Annotations: rdfs:comment "Indicates that a maintenance process has affected
+   a deployment."
+
+ObjectProperty: deploymentProgramUpdate
+   SubPropertyOf: ssn:deploymentProcessPart
+   Characteristics: Asymmetric
+   Domain: SingleSystemDeployment
+   Range: DeploymentRelatedProcessDuration
+   Annotations: rdfs:comment "Indicates that a deployment has been part
+   of a program update."
+
+ObjectProperty: hasChangedProgramDeployment
+   SubPropertyOf: ssn:deploymentProcessPart
+   InverseOf: deploymentProgramUpdate
+   Characteristics: Asymmetric
+   Domain: DeploymentRelatedProcessDuration
+   Range: SingleSystemDeployment
+   Annotations: rdfs:comment "Indicates that a program change has affected a
+   deployment."
+
+# The process subclasses documenting the potential activities
+
+Class: DeploymentInstallation
+    SubClassOf: DeploymentRelatedProcessDuration
+    EquivalentTo: hasInstalledDeployment min 1 SingleSystemDeployment
+    Annotations: rdfs:comment "An installation process, indicating the time when
+    the deployment was installed onto a platform."
+
+Class: DeploymentCleaning
+    SubClassOf: DeploymentRelatedProcessDuration
+    EquivalentTo: hasCleanedDeployment min 1 SingleSystemDeployment
+    Annotations: rdfs:comment "A cleaning process, indicating observations
+    generated during this temporal duration may be suspect."
+
+Class: DeploymentMaintenance
+    SubClassOf: DeploymentRelatedProcessDuration
+    EquivalentTo: hasMaintainedDeployment min 1 SingleSystemDeployment
+    Annotations: rdfs:comment "A maintenance process, indicating observations
+    generated during this temporal duration may be suspect."
+
+Class: DeploymentRemoval
+    SubClassOf: DeploymentRelatedProcessDuration
+    EquivalentTo: hasRemovedDeployment min 1 SingleSystemDeployment
+    Annotations: rdfs:comment "A removal process, indicating the time when the
+    deployment was removed from a platform."
+
+Class: DeploymentProgramUpdate
+    SubClassOf: DeploymentRelatedProcessDuration
+    EquivalentTo: hasChangedProgramDeployment min 1 SingleSystemDeployment
+    Annotations: rdfs:comment "A data logger program update process, indicating
+    the time when the logger was updated with a new software version."
+
+DataProperty: UpdateSummary
+    Domain: DeploymentProgramUpdate
+    Range: xsd:string
+    Annotations: rdfs:comment "A placeholder attribute, used while an ontological
+    design is made to represent the components of a DeploymentProgramUpdate."
+
+# It is possible for a deployment to replace a previous deployment, and this
+#   relationship is captured using the object properties "replaces" and
+#   "replacedBy".  The use of this is for when a sensor replaces another sensor,
+#   e.g. Sensor A is removed for maintenance and calibration in the office, and
+#   Sensor B takes its place at the site.
+
+ObjectProperty: replaces
+   Characteristics: Asymmetric
+   Domain: SingleSystemDeployment
+   Range: SingleSystemDeployment
+   Annotations: rdfs:comment "A relationship indicating that the subject deployment
+   is replacing a previous deployment object."
+
+ObjectProperty: replacedBy
+   InverseOf: replaces
+   Characteristics: Asymmetric
+   Domain: SingleSystemDeployment
+   Range: SingleSystemDeployment
+   Annotations: rdfs:comment "A relationship indicating that the subject deployment
+   has been replaced by a new deployment object"
+
+# Similarly to the 'OverloadedDeployment' class, used to represent a deployment
+#   instance that has more than one deployed system, we define similar classes to
+#   represent desired and undesired states of deployment.  The
+#   'ProblematicDeployedSystem' catch-all class was created to catch all the other
+#   fail cases.
+
+Class: CurrentlyDeployedSystem
+   SubClassOf: SingleSystemDeployment
+   EquivalentTo: deploymentInstallation exactly 1 and deploymentRemoval exactly 0 and ssn:deployedOnPlatform exactly 1
+   Annotations: rdfs:comment "A derived class indicating that a given single
+   system deployment is currently installed."
+
+Class: HistoricDeployedSystem
+   SubClassOf: SingleSystemDeployment
+   EquivalentTo: deploymentInstallation exactly 1 and deploymentRemoval exactly 1 and ssn:deployedOnPlatform exactly 1
+   Annotations: rdfs:comment "A derived class indicating that a given single
+   system deployment has been installed in the past, but has since been removed."
+
+Class: StrandedCurrentDeployment
+   SubClassOf: SingleSystemDeployment
+   EquivalentTo: deploymentInstallation exactly 1 and deploymentRemoval exactly 0 and ssn:deployedOnPlatform exactly 0
+   Annotations: rdfs:comment "A derived class indicating that a given single
+   system deployment has been installed, but has no platform location, putting
+   it at odds with the expected installation on a platform behaviour."
+
+Class: StrandedHistoricDeployment
+   SubClassOf: SingleSystemDeployment
+   EquivalentTo: deploymentInstallation exactly 1 and deploymentRemoval exactly 1 and ssn:deployedOnPlatform exactly 0
+   Annotations: rdfs:comment "A derived class indicating that a given single
+   system deployment has been installed and removed, but has no platform location,
+   making reasoning about its previous locations impossible."
+
+Class: OverloadedDeploymentInstallation
+   SubClassOf: SingleSystemDeployment
+   EquivalentTo: deploymentInstallation min 2
+   Annotations: rdfs:comment "A derived class indicating that a given single
+   system deployment has been used to represent more than one sensor, potentially
+   leading to a situation similar to the fan-trap in RDBM table design."
+
+Class: OverloadedDeploymentRemoval
+   SubClassOf: SingleSystemDeployment
+   EquivalentTo: deploymentRemoval min 2
+   Annotations: rdfs:comment "A derived class indicating that a given single
+   system deployment has been removed twice - a situation that is obviously an
+   error with the modelling rules for this ontology."
+
+Class: OverloadedDeploymentPlatform
+   SubClassOf: SingleSystemDeployment
+   EquivalentTo: ssn:deployedOnPlatform min 2
+   Annotations: rdfs:comment "A derived class indicating that a given single
+   system deployment has been deployed to two platforms - a situation that is
+   obviously an error with the modelling rules for this ontology."
+
+Class: ProblematicDeployedSystem
+    SubClassOf: SingleSystemDeployment
+    EquivalentTo: SingleSystemDeployment and not CurrentlyDeployedSystem and not HistoricDeployedSystem
+    Annotations: rdfs:comment "A derived class used to catch any potentical
+    issues with the modelling of deployment related classes."
+
+# Platforms are similar to http://www.ocean-data.org/ platforms, and are
+#   expected to have a location representation.  This representation may be
+#   the same location as the feature being observed by deployed sensors, or it
+#   may only be similar.  For example, a station may be located at a single
+#   point, but who's instruments record a vertical profile.
+#
+# A platform's location may change, for example a meteorological station may be
+#   swapped out for maintenance, and redeployed at another location, so temporal
+#   attributes must also be stored.
+#
+# To be able to provide basic spatial information for stationary platforms, the
+#   default location information will be provided from the geowgs ontology and
+#   the GeoSparql ontology, however, linking to GeoNames, Ordnance Survey, and
+#   ONS sources would be relatively trivial in the future.
+#
+# Links out to dbpedia:
+#   SameA: http://dbpedia.org/page/Buoy
+#   EquivalentTo: http://dbpedia.org/page/Weather_buoy
+#   EquivalentTo: http://dbpedia.org/page/Weather_station
+
+Class: StationaryPlatform
+   SubClassOf: ssn:Platform
+   Annotations: rdfs:comment "A platform sub-type used to indicate that a
+   platform has a static location when generating observation data."
+
+Class: Buoy
+   SubClassOf: StationaryPlatform
+   Annotations: rdfs:comment "A stationary platform located on a body of water."
+
+Class: MeteorologicalStation
+   SubClassOf: StationaryPlatform
+   Annotations: rdfs:comment "A stationary platform located on land, used to
+   record meteorological conditions."
+
+Class: PlatformDeployment
+  SubClassOf: time:TemporalEntity
+  Annotations: rdfs:comment "A platform deployment, used to represent the
+  data around when, where, and who installed or removed a platform."
+
+Class: PlatformLocation
+  SubClassOf: ssn:FeatureOfInterest
+  SubClassOf: geo:Feature
+  Annotations: rdfs:comment "A deployment feature location, used to represent the
+  location of a deployed platform."
+
+ObjectProperty: hasFieldDeployment
+   Domain: StationaryPlatform
+   Range: PlatformDeployment
+   Annotations: rdfs:comment "Used to link a platform to a deployment entity
+   that defines when and where the platform was deployed."
+
+ObjectProperty: forPlatform
+   Domain: PlatformDeployment
+   Range: StationaryPlatform
+   InverseOf: hasFieldDeployment
+   Annotations: rdfs:comment "Used to link a deployment that defines a given
+   deployment period and location to the platform it represents."
+
+
+ObjectProperty: platformInstalledBy
+   Domain: PlatformDeployment
+   Range: foaf:Person
+   Annotations: rdfs:comment "Links to the person who installed the platform,
+   there can be multiple people associated with the platform installation."
+
+ObjectProperty: installedPlatform
+   Domain: foaf:Person
+   Range: PlatformDeployment
+   InverseOf: platformInstalledBy
+   Annotations: rdfs:comment "Links to the platform that the person installed,
+   there can be multiple platforms installed by a single person."
+
+ ObjectProperty: platformRemovedBy
+    Domain: PlatformDeployment
+    Range: foaf:Person
+    Annotations: rdfs:comment "Links to the person who removed the platform,
+    there can be multiple people associated with the platform removal."
+
+ ObjectProperty: removedPlatform
+    Domain: foaf:Person
+    Range: PlatformDeployment
+    InverseOf: platformRemovedBy
+    Annotations: rdfs:comment "Links to the platform that the person removed,
+    there can be multiple platforms removed by a single person."
+
+ObjectProperty: locatedAt
+    Domain: PlatformDeployment
+    Range: PlatformLocation
+    Annotations: rdfs:comment "Places a platform deployment at a specific feature."
+
+# Power source
+#
+# Each sensor in our current networks is powered by the same hardware that logs
+#   the observation values.  It is the logger that has a minimum operating voltage
+#   which if crossed means that the sensors powered by the logger may not record
+#   reliable observations.
+#
+# The "powers" object property is one that at first appears suitable to make a
+#   sub-property of "hasSubSystem", however, as we are using deployments to
+#   model sub-systems as this allows for complex deployment patterns, the "powers"
+#   property needs to be made for deployment properties.
+#
+#   This means that software based functions that are held within a sensor or
+#   logger are classed as physical sensors, as they reside within the hardware
+#   (as opposed to functions that are hosted outside of the sensors and immediate
+#    network) and are effected by battery thresholds being exceeded.
+
+ObjectProperty: powers
+   Domain: SingleSystemDeployment
+   Range: SingleSystemDeployment
+   Annotations: rdfs:comment "Linking the deployment of a logger system to the
+   deployments of the components it powers."
+
+ObjectProperty: poweredBy
+   InverseOf: powers
+   Domain: SingleSystemDeployment
+   Range: SingleSystemDeployment
+   Annotations: rdfs:comment "Linking the component to the deployment information
+   of the logger that powers it."
+
+# Procedures, Features, and Observations
+# =============================================================================
+
+# Sensing
+#
+# The Sensing class is used to describe how a process, physical or otherwise,
+#   modifies the input and produces output.  When a change is applied it is
+#   important to know when it was applied, what the previous instance was, and
+#   what the new, current instance is.  For these reasons, the ssn:Sensing
+#   class is extended to a temporal sub-class so each sensing implementation can
+#   have a start and end time associated with it.  The object properties to
+#   indicate the replacement of one sensing instance with another are also
+#   created.
+
+Class: SensingRecord
+   SubClassOf: ssn:Sensing
+   SubClassOf: time:TemporalEntity
+   Annotations: rdfs:comment "An extension of ssn:Sensing to enable recording of
+   temporal bounds."
+
+DataProperty: temporalConstraint
+   Domain: SensingRecord
+   Range: xsd:anyURI
+   Annotations: rdfs:comment "Defines how the inputs are collated for processing,
+   for example 'instant', 'leading_lag', 'trailing_lag', 'open_lag' defines if:
+   the input data must all occur at the same time instance, if the dependent
+   variable can be ahead of the independent variables or vice-versa, or if either
+   variable type can be ahead.  Used in conjunction with temporalLimit."
+
+DataProperty: temporalLimit
+   Domain: SensingRecord
+   Range: xsd:integer
+   Annotations: rdfs:comment "The lag in minutes that defines the leading/trailing/
+   open lag entries in the temporalConstraint data property."
+
+ObjectProperty: supersededBy
+   InverseOf: supersedes
+   Characteristics: Asymmetric
+   Domain: SensingRecord
+   Range: SensingRecord
+   Annotations: rdfs:comment "Property to explicitly state that a sensing instance
+   has been superseded, linking to the new sensing instance."
+
+ObjectProperty: supersedes
+   InverseOf: supersededBy
+   Characteristics: Asymmetric
+   Domain: SensingRecord
+   Range: SensingRecord
+   Annotations: rdfs:comment "Property to explicitly state that a sensing instance
+   has been used to supersede a pervious instance, linking to the old sensing instance."
+
+Class: SensingParameter
+   Annotations: rdfs:comment "A representation of an input parameter, used to
+   describe the inputs into a Sensing Record that do not come from a
+   Complex Process, e.g. mode = 1, gain = 100."
+
+DataProperty: hasID
+   Domain: SensingParameter
+   Annotations: rdfs:comment "The name of the Sensing Parameter, e.g. mode or gain."
+
+DataProperty: hasValue
+   Domain: SensingParameter
+   Annotations: rdfs:comment "The value of the Sensing Parameter, e.g. 1, 100 or 'TRUE'."
+
+ObjectProperty: hasInput
+   Domain: SensingRecord
+   Range: SensingParameter
+   Annotations: rdfs:comment "Property linking a Sensing Record to its Sensing
+   Parameters."
+
+ # Logger update
+ #
+ # The logger program changes can modify the sensing characteristics of physical
+ #   sensors, as it changes the parameters that the sensors use.  It is important
+ #   to keep track of when these changes occur, as there can be side effects whose
+ #   behaviour if tracked to a logger change makes for straightforward fixing or
+ #   at least annotation.  The sensing class has the "supersededBy/supersedes"
+ #   object properties, to indicate precedence.  The sensing class is also temporal
+ #   as not all changes are hardware/logger related, but there needs to be some
+ #   way to known when a change in method is applied.  Due to this, the logger
+ #   update simply acknowledges that changes occurred and modified selected sensing
+ #   instances.
+
+ ObjectProperty: modifiedParameters
+   Domain: DeploymentProgramUpdate
+   Range: SensingRecord
+   Annotations: rdfs:comment "Property indicating that a modification to the
+   logger or sensor deployment setup effects the way observations are generated."
+
+# SensorML
+# =============================================================================
+#
+# SensorML datatypes are necessary to provide the potential for serving SOS
+#   requests, and providing more information regarding the asset-management and
+#   sensor meta-data required in such a system.  The mappings between SensorML
+#   fields and datatypes are as follows:
+#
+# - identifiers: this will be the instance URI, and is an annotation within SSN,
+# - The following are a set of identifiers label/description pairs that are
+#   applicable to most sensors
+# - shortName: the identifier the procedure is generally refered to in the
+#     existing systems, usually shorthand for a longer name.
+# - longName: the corresponding full name of the short-hand shortName.
+# - serialNumber: the serial number of a physical sensor, or the URI of a
+#     procedure code repository.
+# - manufacturer: the manufacturer of physical sensors, an object property rather
+#     than a datatype.
+#
+# - documentation: URI links to online documentation, manufacturer's website etc.
+#
+# Further SensorML information is divided into two categories of deployment
+#   related information and processing information.
+#
+#   The deployment information such as: local reference frame, position, and
+#   attachedTo should be encapsulated by the deployment data - however local
+#   reference frame and position are not currently recorded for most of our sites
+#   and so are left out of this implementation.  The attachedTo information can
+#   be provided by the relationships between deployment instances.
+#
+#   The processing information such as: components and connectors,
+#   parameters, modes, configuration, inputs, and outputs should be defined
+#   as meta-data around the Sensing instances, or piping the outputs of procedures
+#   into the inputs of other procedures, and deriving the information from these
+#   relationships.
+# =============================================================================
+
+DataProperty: hasDescription
+    Domain: ssn:Sensor
+    Range: xsd:string
+    Annotations: rdfs:comment "Simple textual description of the procedure in a
+   few sentences, designed to be human readable.  Taken from the
+   BasicTypes::AbstractSWEIdentifiable object in SensorML 2.0."
+
+DataProperty: hasShortName
+    Domain: ssn:Sensor
+    Range: xsd:string
+    Annotations: rdfs:comment "Short ID of the procedure, human readable, not
+    intended to be used as a unique identifier.  Identifier as defined in
+    SensorML 2.0. section 7.2.2.3."
+
+DataProperty: hasLongName
+    Domain: ssn:Sensor
+    Range: xsd:string
+    Annotations: rdfs:comment "Long ID of the procedure, human readable, not
+    intended to be used as a unique identifier.  Identifier as defined in
+    SensorML 2.0. section 7.2.2.3."
+
+DataProperty: hasSerialNumber
+    Domain: ssn:Sensor
+    Range: xsd:string
+    Annotations: rdfs:comment "A hardware-based property to record the
+    manufacturers and/or CEH's internal assigned serial number.  Identifier as
+    defined in SensorML 2.0. section 7.2.2.3."
+
+DataProperty: hasDocumentation
+    Domain: ssn:Sensor
+    Range: xsd:anyURI
+    Annotations: rdfs:comment "A link to any documentation that explains the
+    hardware or software in more detail, e.g. manufacturer's handbook or GitHub
+    readme/wiki. Identifier as defined in SensorML 2.0. section 7.2.2.11."
+
+Class: Manufacturer
+
+DataProperty: hasTradeName
+    Domain: Manufacturer
+    Range: xsd:string
+    Annotations: rdfs:comment "Manufacturer's trading name."
+
+DataProperty: hasWebsite
+    Domain: Manufacturer
+    Range: xsd:anyURI
+    Annotations: rdfs:comment "Link to manufacturer's website."
+
+ObjectProperty: hasManufacturer
+    Domain: ssn:Device
+    Range: Manufacturer
+    Annotations: rdfs:comment "Property linking a hardware device to the
+    manufacturer's instance."
+
+ObjectProperty: manufactured
+    Domain: Manufacturer
+    Range: ssn:Device
+    InverseOf: hasManufacturer
+    Annotations: rdfs:comment "Property linking a manufacturer to the devices
+    they have created"
+
+# WaterML
+# =============================================================================
+#
+# The WaterML pt.1 specification defines TimeSeriesML, a standard focused on
+#   collecting the metadata about observations and the collection of observations.
+#   It exists as a bridge between SensorML and OM, in that it records a lot of
+#   information about the way a process operates and generates a datastream that
+#   SensorML does not.  It also adds metedata onto the existing OM to allow for
+#   a richer definition of an observation and its place within a data-stream.
+#
+# For the attributes that refer to the sensor, and those that can apply to multiple
+#   observations, we will take them out of the observation metadata and store them
+#   within our monitoring ontology.
+#
+# The attributes can be
+#
+# - processType: (Simulation, Manual Method, Sensor, Algorithm, Unknown) URI link.
+# - processReference: Same as SensorML documentation.
+# - intendedObservationSpacing: Expected duration between individual observations.
+# - status: (Validated, Provisional) URI link.
+# - maximumGap: The largest gap allowed between observations where interpolation
+#     can still be used.
+# - sampledMedium: (Water, Ground Water, Soil, ...) URI link, but part of the
+#     observed property in CPM or OP design.
+# - domainExtent: temporal extent of the timeseries - inferred from deployment
+#     installation, removal, and cleaning/maintenance entries.  A single deployment
+#     may have multiple domain extents.
+# - baseTime: could be inferred - not used
+# - spacing: could be inferred - not used
+# - interpolationType: Interpolation and aggregation, URI link, part of the
+#     observed property in CPM or OP design.
+# - aggregationDuration: The length of time aggregation is performed over, part of the
+#     observed property in CPM or OP design.
+# - accumulationIntervalLength: Timespan in which an accumulation value is
+#     generated from, part of the observed property in CPM or OP design.
+# - accumulationAnchorTime: Time point from which an accumulation interval length
+#     is attached, e.g. xx:00, combined with an accumulationIntervalLength of 59
+#     describes an accumulated value output as say 13:00, which used observations
+#     from 12:01 to 13:00 in its creation.
+# - cumulative: Whether the timeseries is cumulative in nature.
+#
+# Some of the attributes can be attached to a sensor instance, as these are the
+#   static values of a procedure.  Those that can change, need to be held within
+#   a temporal entity attached to, in this case, the ComplexProcess, as the
+#   settings will only ever be set when the procedure is used, and this only
+#   occurs when a ComplexProcess exists.
+#
+# Other attributes that could also join the ComplexProcess set of attributes,
+#   such as the aggregationDuration, accumulationIntervalLength, or cumulative,
+#   may be better represented within the observed property.  While the settings
+#   do originate from the procedure, it seems that they are both descriptive
+#   of how the process works, but also of the way the property is interpreted,
+#   this also means that if any of the parameters change, a new property would
+#   be created.  This works, as changing these parameters can fundamentally
+#   change the signal as its recorded, and so the property is indeed different.
+#   The only difficult is that this may lead to many "1h" properties, each with
+#   slightly different parameters, such as where the aggregation start in a given
+#   hour.
+
+DataProperty: processType
+    Domain: ssn:Sensor
+    Range: xsd:anyURI
+    Annotations: rdfs:comment "The type of procedure, a URI allowing the following
+    choices: Simulation, Manual Method, Sensor, Algorithm, Unknown.  Found in
+    section 9.22.1 of the WaterML Part 1 standard.
+
+    Simulation http://www.opengis.net/def/waterml/2.0/processType/Simulation
+    Manual Method http://www.opengis.net/def/waterml/2.0/processType/ManualMethod
+    Sensor http://www.opengis.net/def/waterml/2.0/processType/Sensor
+    Algorithm http://www.opengis.net/def/waterml/2.0/processType/Algorithm
+    Unknown http://www.opengs.net/def/nil/OGC/0/unknown"
+
+DataProperty: status
+    Domain: ssn:Sensor
+    Range: xsd:anyURI
+    Annotations: rdfs:comment "The state of the observations generated by the
+    procedure, for example: Validated or Provisional.  Currently no standard
+    defined set of values.  In WaterML this is an observation based property,
+    however as we do not plan on overwriting results, instead keeping a processing
+    provenance, we can say from the start that, for example, all raw procedures
+    generate provisional data, while a level four, QC, Interpolated, data manager
+    checked dataset will always be validated.  Found in section 9.4.1.8.2 of the
+    WaterML Part 1 standard."
+
+DataProperty: interpolationType
+    Domain: ssn:Sensor
+    Range: xsd:anyURI
+    Annotations: rdfs:comment "Describes how a recorded value relates to the time
+    instant it is recorded at.  The WaterML standard provides a comprehensive
+    range of interpolation type URI values which should be adhered to.  This is
+    a property who's definition will affect the observable-property components,
+    but is inherently a setting of the procedure.  I think this is a property
+    that should it change, being such a fundamental description of the procedures
+    behaviour, that a new procedure should be created.  As the SensorML identifiers
+    do not need to be unique, tracking the same piece of hardware through different
+    process definitions would not be a problem.  Found in section 9.15.3.2 of
+    the WaterML Part 1 standard."
+
+Class: ProcessSettings
+    SubClassOf: time:TemporalEntity
+    Annotations: rdfs:comment "A temporal entity created to group together sets
+    of WaterML derived parameters that may change over time."
+
+DataProperty: intendedObservationSpacing
+    Domain: ProcessSettings
+    Range: xsd:integer
+    Annotations: rdfs:comment "The expected spacing between generated observations,
+    to be used as a QC sanity check for missing data.  Found in section 9.4.1.8.1
+    of the WaterML Part 1 standard."
+
+DataProperty: maximumGap
+    Domain: ProcessSettings
+    Range: xsd:integer
+    Annotations: rdfs:comment "Included, but unsure of whether we keep or would
+    specify this value.  Found in section 9.4.1.8.4 of the WaterML Part 1 standard."
+
+Class: DomainExtent
+  SubClassOf: time:TemporalEntity
+  Annotations: rdfs:comment "The extent of a timeseries.  In WaterML it is implied
+  that this is simply the begining and end of a timeseries, however, if parameters
+  like the maximumGap were taken into account, or differing ProcessSettings
+  instances for the same ComplexProcess, it seems that there could be a collection
+  of extents when significant gaps are introduced into the timeseries or significant
+  changes to setup.  By making this class temporal, it can have a start and end time,
+  and the procedure class (sensor) can have as many of these depending on the rules
+  setup.  Found in section 9.12.3.1.1 of the WaterML Part 1 standard."
+
+# There is an attempt to bring the cumulative, aggregation, and accumulation
+#   TVP entries into the domain representation.  The anchor time (and so start
+#   and end anchor times), and durations, will not change during operation, and
+#   so it is possible to use a single set of values to represent all observations
+#   of a property.
+#
+# TODO:
+# This has not been completed as it is unclear on the best way to implement this.
+#   The SensingRecord connected to the procedure observing the aggregated property
+#   will have the parameters necessary to create the datasets, while for
+#   hardware that calculates accumulated values, this will also be represented
+#   by a sensing record.  As these parameters will be giving the same information
+#   as the data properties below, and so will dictate how we represent the below
+#   it seems better to revisit this once the SensingRecords are being used
+#   correctly to drive the processing framework.
+#
+# It is worth noting that a different ObservableProperty entity should be created
+#   for any change in the cumulative parameters, as technically this is now a
+#   different property, with different characteristics.
+
+# DataProperty: cumulative
+#    Domain: cpm:StatisticalMeasure
+#    Range: xsd:boolean
+#    Annotations: rdfs:comment "A boolean flag to indicate whether the timeseries
+#    is cumulative or not.  Found in section 9.15.2.3 of the WaterML Part 1 standard."
+
+#DataProperty: aggregationDuration
+#    Domain: cpm:StatisticalMeasure
+#    Range: xsd:integer
+#    Annotations: rdfs:comment "For series that aggregate values over time, the
+#    duration is used to define how long from the anchor time values are aggregated
+#    over.  Not used exactly as the standard defines, as the assumption is made that
+#    the anchor time, and duration time can be used to identify all the individual
+#    anchor points for each observation.  Value defined in minutes.  Found in
+#    section 9.15.3.1 of the WaterML Part 1 standard."
+
+#DataProperty: aggregationAnchorTime
+#    Domain: cpm:StatisticalMeasure
+#    Range: xsd:integer
+#    Annotations: rdfs:comment "The starting point for an aggregated observation,
+#    complimented by the aggregationDuration property.  Value defined in Found in section 9.15.2.1
+#    of the WaterML Part 1 standard."
+
+#DataProperty: accumulationIntervalLength
+#    Domain: cpm:StatisticalMeasure
+#    Range: xsd:integer
+#    Annotations: rdfs:comment "Similar to the aggregationDuration property, the
+#    interval length is the time period in which a value is accmulated over.
+#    Similarly to aggregationDuration we are using it in a different way than the
+#    standard based on assumptions of the data being represented. Found in section
+#    9.15.2.3 of the WaterML Part 1 standard."
+
+#DataProperty: accumulationAnchorTime
+#    Domain: cpm:StatisticalMeasure
+#    Range: xsd:integer
+#    Annotations: rdfs:comment "The starting point of an accumulationIntervalLength,
+#    complimented by the accumulationIntervalLength
+
+#DataProperty: cumulativeTemporalCategory
+#    Domain: cpm:StatisticalMeasure
+#    Range: xsd:anyURI
+#    Annotations: rdfs:comment ""
+#    Found in section 9.15.2.3 of the WaterML Part 1 standard."
+
+# Observations
+# =============================================================================
+
+Class: MonitoringFeature
+   SubClassOf: ssn:FeatureOfInterest
+   SubClassOf: geo:Feature
+   Annotations: rdfs:comment "A monitoring feature, used to represent both the
+   location of a deployed platform, and the sampling features those sensors are
+   tasked to record.  A shared type, as it is possible for them to be the same
+   in some instances, however general use is expected that the platform features
+   will be simple point lat/lon coordinates, while sampling features will have
+   a Z axis and potentially represent curves and/or polygons.  Being a GeoNames
+   feature we can relate the platform and sampling features together if different."
+
+Class: ObservableProperty
+   SubClassOf: ssn:Property
+   Annotations:
+
+Class: ComplexObservableProperty
+   SubClassOf: ssn:Property
+   Annotations: rdfs:comment ""
+
+Class: PropertyCharacteristics
+   Annotations: rdfs:comment "An observed property can have many characteristics
+   dependent on both the cpm:ObservableProperty values, and the feature where
+   the observing occurs.  These characteristics will be defined using a mix of
+   object properties and attributes once the initial analysis and discussion with
+   scientists identify exactly what is important to record.  For example, is the
+   signal diurnal, seasonal, autocorrelated?  If it is autocorrelated, how do we
+   represent this, with a diurnal and seasonal signal, what type of parameters do
+   we use to summarise this?  Concepts will be held within the vocabulary."
+
+ObjectProperty: hasCharacteristics
+   Domain: ObservableProperty
+   Range: PropertyCharacteristics
+
+Class: ComplexProcess
+   Annotations: rdfs:comment "The class that bridges between a hardware or software
+   process and the observable property it observes.  Used to provide an instance
+   that can be used in place of the sensor output, or observations, when linking
+   to other processes in the process chain."
+
+ObjectProperty: hasIndependentVariable
+   Domain: SensingRecord
+   Range: ComplexProcess
+   Annotations: rdfs:comment "Links the output of a complex process to the sensing
+   record of another process, recording provenance of flow throughout the system."
+
+ObjectProperty: hasDependentVariable
+   Domain: SensingRecord
+   Range: ComplexProcess
+   DisjointWith: hasIndependentVariable
+   Annotations: rdfs:comment "Links the output of a complex process to the sensing
+   record of another process, recording provenance of flow throughout the system."
+
+ObjectProperty: usedProcess
+   Domain: ComplexProcess
+   Range: ssn:Sensor
+   Annotations: rdfs:comment "Linking the complex process that represents the
+    intersection between a hardware or software process and the observable
+    property that its generation observations for/from."

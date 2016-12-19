@@ -1,0 +1,200 @@
+# Semantic Data Modelling
+
+## Introduction
+
+The choice of which standard best suits both the observation data and the procedures that generate it is a difficult one; the majority of standards are relatively new, there are relatively few publicly available examples or publications, where examples exist they tend to be trivial in nature compared to our use-case, and the space is constantly evolving.  At the core of the work lies the SensorML (SML) and Observations & Measurements (OM) standards.  The Semantic Sensor Network Ontology (SSNO) is a standard derived in part from SML and OM, with influence from other existing ontologies, while the TimeseriesML (TML)(WaterML part 1) standard is an extension of OM, focusing on the temporal-domain coverage observation type.  Of these SML, OM, and TML are document-centric designs, while the SSNO is a linked-data design.  A representation coming from a different viewpoint of those mentioned above is the Provenance ontology (PROV-O), filling a more general role of defining the provenance chains and meta-data about the creation of any data, rather than focusing on a specific domain.  In this area there is ongoing work to overlay SSNO with PROV-O, however currently published results have not been entirely satisfactory for deployments where the observations are not stored as part of the linked-data.  Of the representations above, it is the SSNO and TML that are of most interest, and will be discussed below.
+
+### SSNO
+
+The SSNO is the format of choice for encoding the SML and deployment related information due to its linked-data approach to data representation, and its ability to capture as much metadata as SML.  This linked-data approach supports a wide-range of queries that are not possible when taking a document-orientated approach such as with SML.  This is due to the document-orientated approach using the SOS protocol for data access, and so provides limited functionality for search using a small subset of metadata indexed out of the document including: feature ID or location within a spatial extent, temporal bounding of sensor definitions and/or observations, and the property being observed.  While SML supports a wide-range of metadata, it is not possible to search over it using the SOS protocol.  This lack of search means that any discovery or query filtering based on metadata not supported by the SOS protocol must be either done manually, or, the SML must be transformed into a format that allows for fine-grained discovery and query filtering.  Such a transformation is, in essence, what the SSNO provides, and so for our core system it makes more sense to use the SSNO for base encoding, and to generate SML when necessary from the SSNO data.
+
+The SSNO is a very high-level representation, providing the main areas of information and relationships with which to extend.  Existing examples are trivial in nature, with no detailed process chains or component linkage examples such as exists for SML.  Also due to its high-level representation, there is still the risk that one organisation's implementation will not be mapped in a straightforward way to another organisation's implementation due to slightly different ways of representation at the lower levels.  This freedom in design is similar to SML, whereby in allowing for a range of different implementations we have a flexible standard that isn't as directly interoperable as a less flexible standard would be.
+
+Even with the above issues, the use of a linked-data representation provides: greater search capabilities, potential to infer relationships and attributes, to logically map between observations and concepts in other datasets (e.g. dbpedia, CSIRO), and to provide a storage representation for a SOS endpoint to get the best of both the document and linked-data approaches.  Some existing examples are below:
+
+* https://www.w3.org/2005/Incubator/ssn/wiki/Agriculture_Meteorology_Sensor_Network
+* https://www.w3.org/2005/Incubator/ssn/ssnx/meteo/aws.html
+* https://www.w3.org/2005/Incubator/ssn/ssnx/meteo/phenonet
+
+### TML
+
+The TML is a comprehensive time-series metadata design, focusing on a temporal-domain centric view of the world.  It extends the OM standard with a rich set of attributes to help understand and better use timeseries observations, capturing information about: the creation of observation streams, the observation streams themselves, and the individual observations within the streams.  It is the newest of all the standards discussed, and at present has very little published literature or examples of its use.
+
+## Design Goals
+
+There can be a number of different ways to achieve similar results in ontological modelling, and so a goals-orientated approach has been used to validate design.  This is where we define a range of queries that represent the particular end-user queries that need to be supported, and validate the design by the ability to answer these.  This is very similar to the design rational of NoSQL databases such as Cassandra and HBase, rather than that of relational design.
+
+The sub-sections below will provide example queries to drive different sections of the implementation, focusing on the description of deployments, hardware, and observation streams.
+
+### Deployment Information
+
+There is a lot of metadata regarding deployment information that must be captured, to enable understanding of observations within context.  Moving of sensors, cleaning or maintenance on the platform, changes to the software managing the sensors such as mode or parameter changes, are all examples of deployment information that is necessary for a user to have to determine which artefacts in the data are likely caused by the underlying phenomena signal, and which are definitely introduced by extraneous origin.  As such, the data representation must be able to answer questions such as:
+
+* When was sensor A deployed on platform B?
+* Which platforms has sensor A been deployed on in a given year?
+* During a given temporal period, was sensor A's output affected by any maintenance or cleaning schedules?
+* When was sensor A replaced with sensor C?
+* How long has it been since sensor A has been cleaned?
+* When was the logger program changed to apply a different multiplier to the wind speed sensor's output?
+* When was the logger program changed to modify the recorded observation time?
+* Which sensors on platform B were affected when logger A's battery voltage dropped below 10.5 V?
+* Where was the platform a year ago, a week ago, a day ago?
+* Which sensors were deployed on the platform when a given environmental event occurred at a given time?
+* Where has sensor with serial number A101 been deployed this year?
+* Where is sensor with serial number B101 deployed right now?
+
+### Hardware and Capabilities
+
+For a user to determine whether a particular sensor can be used for a given task, as much metadata as possible must be provided to allow for the most informed choice.  Currently the only metadata recorded in this area is around the sensitivity/accuracy of sensors.
+
+* How many temperature sensors currently have a capability of detecting a change of 0.01 degrees Celsius?
+* How many sensors are recording observations at a temporal resolution of less than four minutes?
+
+### Observations, Properties, Sensing
+
+The most crucial part to the success of a SSNO implementation is the ability to search over the observation related data.  This is the main section for data discovery, as the answers provide information on the features of interest and the phenomena recorded there.
+
+* Which sensors measure property A at location B?
+* Which sensors measure voltage as a proxy for temperature?
+* Which sensors record Chlorophyl A and what do they use as a proxy?
+* Which sensors record Chlorophyl A concentration, using the output of another sensor?
+* Which sensors are used to create the thermocline depth observation at SBAS?
+* Which sensors use QC method B?
+* Which sensors use interpolation method C?
+* What type of behaviour does the property being measured exhibit (e.g. diurnal, seasonal).
+* How many distinct interpolation methods are being used to forecast sensors with the observed property of temperature?
+* How many range-based QC methods does sensor A use?
+* What level 1 data-sources are there within the ABC monitoring program?
+* What are the inputs for QC method A, when used by Sensor B (e.g. what sensors, parameters)?
+
+## Design Overview
+
+The overall goal of this project is to combine the representation of the SSNO, with the rich attributes of SML and TML.  This allows for a comprehensive description of the observations and their generative processes, but also allows us to support SOS calls by mapping our instances and attributes to a SML or TML template.  By taking this approach we get the powerful query and inference traits of linked data, yet can support the standards being taken up across Europe to enable uniform data discovery and integration.
+
+Due to the differences in structure between the SSNO and both SML and TML, the conversion of SML and TML attributes is not a straightforward mapping.  While a guide exists for converting UML to RDF, it is for a like-for-like conversion, and not for mapping between two existing similar designs.
+
+As well as the above complication, another problem is introduced by not representing the observations in the linked-data structure.  This choice stems from performance concerns, as with only the SSNO structure we would have over a billion triples to represent the metadata associated with 380 million observations.  If we then included the multiple QC outputs and other derived data, this could grow to between five and ten billion triples with only our legacy data.
+
+### Features and their Observable Properties
+
+#### Individual Properties of Features
+
+Within the SSNO, there is a basic **_"Procedure <-> Property <-> Feature"_** relationship.  This many to many to many relationship makes querying directly between procedures and features impossible if one were to share property instances between features.  Such design does seem to be in the spirit of the SSNO, and the only reason that this is not a problem for querying, is that the output of a procedure brings together the matrix of important values, i.e. the procedure that generated the observation, the sensing method the procedure implemented, the property the observation represents, the feature the observation relates to, and the input that serves as a proxy for the observation.  Therefore it is possible to identify the source of an observation, and from it, the real links between instances.  As we do not plan on storing observations in the linked data, we need to identify a different design.
+
+Proposed is to have a property instance that is only associated with one feature.  So rather than mapping the "hasProperty" relationship from a feature to an instance in the properties ontology, instead we create an instance of observable-property for every observed phenomena at every feature.  These instances will have an object property that links to the properties ontology.  This makes the relationship between feature and observable property a one to many, which when combined with changes in other areas allows for meaningful querying of the **_"Procedure - Property - Feature"_** relationship.  The basic layout would be as follows:
+
+![Basic layout example](procedure-property-feature-basic.png)
+
+So for example, if we were to describe the water temperature at a certain depth in a lake we would use the following layout where the observable-property instance, "LE/OP/1", is used to represent the property linked to in the ontology at the location given by the feature:
+
+![Water temperature in lake example](procedure-property-feature-observable_property.png)
+
+#### Discrete vs. Continuous Features
+
+Another important design consideration is that of discrete and continuous features, and where the line is drawn between these two concepts.  If a discrete feature is used, it implies that the sensing devices observing that feature's properties are static at that location.  If a continuous feature is used, then the coordinates of any given observation are included as metadata with the observation, while the feature is given as the spatial bounding area of all the observations.
+
+An obvious discrete feature would be an automated weather station, who's location is static during its deployment period.  A continuous feature would be a moving platform such as a boat or drone, taking measurements continually within a spatial area.  In-between these two straight-forward examples is that of a moving sensor that samples at fixed points along a transect.  With this example, it seems that it comes down to how many points are within a sampled transect, and how often they are revisited as to inform whether the feature is modelled as discrete or continuous.
+
+We currently have two current examples of where such a decision must be made.  The first instance is that of a lake sensor located at a fixed point on a lake, that is lowered vertically to sample the water column at one metre depth intervals, in a continuous cycle.  The second instance is that of a soil analysis sensor, which can sample a range of positions within a defined grid by travelling on a fly-by-wire apparatus.  The water column example is a clear situation where we can model the positions as a set of discrete features, as the depths are constant, each depth is sampled the same number of times as all the others, and there is only a small number of depths.  The soil sensor is a trickier concept, as we do not know yet whether there would be a set number of features, or if the whole grid area could potentially be sampled.  Until more information is known this decision cannot be made.
+
+The benefit of using discrete features is that it allows the use of a large range of off-the-shelf algorithms and analysis techniques suited to analysis of signals modelled as a temporal coverage domain located at a single position.  This includes quality control, aggregation, and forecasting algorithms.  By modelling a set of observations as belonging to a spatial and temporal coverage domain, this narrows the choice of potential analysis algorithms.  A downside to creating many discrete features is that it adds bloat to the number of features registered in the system.  This is not foreseen to be an issue however, as the use of higher level sampled features combined with GeoSPARQL queries should make traversing and grouping relevant features manageable.
+
+In the example below, a single sensor, "PRT 1001026" is used to measure the temperature at three different depths within the lake.  These depths are represented as discrete features, and each has an observable-property used to link the feature to the temperature property in the ontology.  Each of these observable-properties is observed by a complex-procedure that represents the sensor - this relationship is defined in the section below.
+
+
+![Example discrete features](procedure-property-feature-discrete_features.png)
+
+If the above were to be modelled as a continuous feature, then the feature of interest would be a spatial curve, and each observation would have to record the depth it was taken at on that curve.
+
+### Sensors, Sensing Devices, and Complex Procedures
+
+When talking about QC, forecasting, and other procedures that create derived data, it is important to know exactly what input sources are being used.  While SML has strong provision for modelling procedure chains and their input/output connections, the SSNO doesn't have any explicit examples of procedure chaining, and it is only with the introduction of the Complex Processes ontology ([CPO](https://github.com/adamml/complex-processes)) where such behaviour appears to be defined in an observation-process/procedure chain using semantic standards.  If we were to use the basic SSNO representation however, we would encounter difficulties very early in our modelling task when implementing any derived data.  This stems from the issue of a procedure that can be deployed to multiple locations over its life, and so be linked to multiple observable-property instances.
+
+With such a procedure, there would have to be an intermediary entity that first brought the procedure and observed-property together, that then linked to the next part of the chain.  This would allow a user to trace the property and feature a procedure further up the chain observed.  Without the intermediary, we would only be able to link to the procedure, and wouldn't know which of potentially several observable-properties was used in the chain.  This intermediary is called complex-procedure.  It is also necessary, when chaining procedures together, to pipe the output of one complex-procedure to the input of the next complex-procedure, as if it were to go to the procedure we would have the same ambiguity as before.
+
+The below shows the ability to link complex-procedures, and their use in linking multiple feature's properties to a single procedure in a meaningful way.  It takes the "CP1001026/x" complex-procedure instances from the example for discrete features, and connects these to "LA/Hypolimnion/CP/1" with a "used" relationship.  This means that it is known exactly the procedure, property, and feature combinations used for input, which would not be possible if we had used procedure ("PRT 1001026") instead of complex-procedure.  If the complex-procedure "LA/Hypolimnion/CP/1" were to be used in a further process-chain, the same provenance tracking ability would hold.
+
+![Complex-procedure example](procedure-property-feature-complex_process_flow.png)
+
+#### Complex Procedure as a Feature
+
+Both the TML and SSNO standards make provision to record result quality information for an observation.  The provision in TML uses a DQ element as defined in ISO 19115, which allows not only for the outcome, but to name the process used, and other metadata such as a quantitative and/or conformance result.  The specific standard may change to ISO 19157 as it appears this is being used to harmonise different standards on data quality (more information can be found [here](https://geo-ide.noaa.gov/wiki/index.php?title=ISO_Data_Quality)).
+
+Regardless of the exact implementation, neither TML or SSNO model data quality procedures as observation generating procedures - they are viewed as a different type of entity.  As we wish to model all processes in the same way, to allow traversing process-chains, it is necessary to decide how to model the feature of a QC process.  For example, if we are taking the eccentricity measure of a stream of atmospheric temperature data from a physical sensor, what is the feature of the QC function?  It is not the physical feature, as the eccentricity relates to the combination of the phenomena being observed and the procedure carrying out the observing, as the latter may introduce artefacts into the signal.  In the previous sub-section we used the complex-procedure entity to provide clarity on the procedure, property, feature relationship, and it is this entity that will be the feature of interest for QC.  It will also be the input to the QC complex-procedure, via sensing, to give the full relationship.
+
+For example, here we can see three different QC procedures being used to observe the forecast divergence property of the "LA/Hypolimnion/CP/2" complex-procedure/feature, itself an output of the "Lake Analyzer" => "LA/HYPOLIMNION" procedures.  The complex-procedures of these three QC checks are then used as input in to the "Overall QC Flag Clustering" complex-procedure.  Overall this workflow, starting in the examples above this one, have shown physical hardware sensors detecting temperature, their outputs being used to detect the hypolimnion, whose values are then checked against some QC forecasts ending with an overall QC flag being applied.
+
+![Example complex-procedure as a feature](procedure-property-feature-complex_process_QC.png)
+
+Interpolation procedures have a similar layout, where the observable-property and feature are the same as those the procedure who's datastream is being interpolated.
+
+#### Complex Procedures and Observable Properties
+
+The complex-procedure entity introduced for the **Derived Procedure Input** and **Procedure as a Feature** subsections above is one that a user should never need be aware of.  The same applies to the observable-property introduced in the **Individual Properties of Features** subsection.  
+
+During data entry of the properties of features, when an individual selects properties associated with a feature, the system should check to see if an observable-property exists combining the feature and the property, and if so, do nothing, else it should create the observable-property entry.  Similarly, when a user selects a sensor and specifies the observable-property it is recording (and also the feature by extension), then if a complex-procedure already exists for this relationship nothing is done, but if missing then a complex-procedure is created.  When searching, a user may use some combination of feature, property, and procedure, and while the query will use the observable-property and complex-procedure entities, there is no reason for these to be returned to the user.
+
+For the TML metadata that is associated with a complex-procedure, when returned to the user it will be displayed as if belonging to the sensor itself.  For context it would be necessary to include the observable-property (and so feature) that the metadata referred to.  For instance, if a sensor had been used to record atmospheric temperature at two different features at different times, then the domain extent, intended observation spacing, settings, and other metadata may differ between feature deployments.
+
+In the example below, the green ovals represent SML attributes, while the yellow ovals represent WML attributes, demonstrating whether they are data attributes of the procedure or the complex-procedure.
+
+![Example complex procedures with multiple observable properties](procedure-property-feature-complex_process.png)
+#### Sensing Parameters
+
+Within the SSNO, the sensing entity is used to define the way in which a procedure generates its observations.  For instance, an algorithmic procedure may use a R function to generate the observations, and as such the sensing entity would link to the Git repository of the code.  The same procedure may also take in parameters that are unchanging over short time periods, but are unique to a given complex-procedure and have the potential to change.  This gives cause to interpret the sensing entity on the basis of what it is connected to: the procedure, or the complex-procedure.
+
+If we link a sensing entity to a procedure, it is viewed that the details of the sensing entity applies to all linked complex-procedures.  If we link a sensing entity to a complex-procedure, then those details only apply to that single complex-procedure.  Further for both of these cases, it is possible for a sensing entity to be superseded by a newer version, and as such the sensing entity must also be modelled as a temporal entity, with object properties to describe the supersedes/superseded by relationships.
+
+It is the sensing entity of complex-procedure instances that will be used to join complex-procedures together.  For example, complex-procedures A, B, and C are all used as input to complex-procedure D, who's feature of interest is complex-procedure A.  D is a QC function that takes the input from A, and compares it to model output generated using B and C to assign a pass/fail outcome.  Linking the output from A, B, and C to the sensing instance will be object properties defined as dependent and independent, allowing inference of what role the input complex-procedure instances are taking.  As the sensing entity will be temporal, this allows for inputs to change over time.  The definition of the model used by complex-procedure D is given by the sensing entity attached to its parent procedure.  In all the examples above, the link to sensing has been omitted in favour of directly linking complex-procedures to each other for simplicity.
+
+Capabilities such as MeasurementRange, MeasurementFrequency, Accuracy, and other measurement properties from the SSNO must have temporal bounds (validFrom, validUntil), and should be associated with the FOAF representation of the person identifying the changes.
+
+It is also necessary that any Sensing entity that has more than one linked complex-procedure for input, must also have an attribute defining the temporal relationship between the inputs.  For example, whether the timestamp must be equal on all inputs before applying the complex-procedure, or if they can be lagged etc.
+
+The example below shows that the code used by the Lake Analyzer package is located on GitHub (with an address in the properties), but that the individual functions used have their own parameters.  The BUOY-FREQUENCY example shows the differing parameters over time, with the superseded relationship between the sensing instances.
+
+
+![Example sensing parameters](procedure-property-feature-sensing_parameters.png)
+
+#### Multiple Property Procedures
+
+In some instances it is possible for a single procedure to observe multiple properties.  For example the HOBO sensor detects temperature and relative humidity using hardware, and an internal software routine to calculate the dew point temperature.  The Chlorophyll A sensor outputs a voltage reading based on detection method, and an internal software routine converts this to a concentration value.  For purely software procedures, it may be that a library has only one function, but the type of property it outputs depends on the input parameters.
+
+Both the hardware and software scenarios cause problems for different reasons.  The hardware scenario causes an issue through the sensing entity, while the software scenario causes an issue due to both the sensing entity and procedure characteristics, explained below.
+
+##### Hardware
+
+With hardware, it may be that a composite sensor has settings applicable for all sub-components that would be defined in a sensing entity.  It may also be true that it has settings that are only applicable to certain sub-components.  For example the Chlorophyll A sensor has settings that are only used by the physical sensor that outputs a voltage reading, while a separate group of settings are used only by the function that transforms the voltage into an abundance value.  To keep the design of a single valid sensing entity per procedure, sensors that observe multiple phenomena will need to be artificially split.  So continuing the Chlorophyll A sensor example, there would be a procedure representing the composite sensor, which would then have sub-sensors attached representing the voltage and abundance components.  When installed at a site, it would be the composite sensor that is deployed.  This is the only instance where the property attachedTo is used, for composite sensors that can never be separated.  For any temporally connected sensors, this is modelled via deployments.
+
+![Example composite sensor](procedure-property-feature-composite_sensor.png)
+
+##### Software
+
+With software, the need to split composite procedures into sub-procedures is both for the same reason as hardware, and for procedure characteristics.  For forecasting, QC, and other types of procedure, it's expected that each individual process with have characteristics defining how it behaves and what it can be used for.  So if a single function has multiple outputs, each of which are for different properties and/or have different characteristics, there needs to be an artificial separation of the single procedure into multiple sub-procedures.  Each of these artificial sub-procedures would have a sensing entity describing the parameters used to create the output.
+
+An example is given with the Lake Analyzer package in the **Sensing Parameters** sub-section above.
+
+### Sampling Features, Observations
+
+A sample is modelled similarly to software and hardware designs above, except that the sample instance is substituted in place of the observed-property.  For observed-properties of the sample, there is redundancy in relationships similar to QC complex-procedures in that the complex-procedures have a 'used' relationship to the sample instance, as well as using it as the feature of interest.  The 'generatedBy' and 'derivedFrom' properties are only used when creating samples and/or sub-samples.
+
+
+### Data Types
+
+While the observable-property is a definition of the signal phenomena being observed or created, there has been no discussion yet on differing levels of data products.  Data-types, as discussed at the RDA Plenary, will be used for this task.
+
+The differing granularity of data types would serve well the differing levels and complexities of data products.  For example, a 'Level Zero' product would be the data that is generated from hardware sensors, or, from feature samples.  'Level One' products would be the same output with an overall QC flag assigned.  'Level Two' could be the gap-filled product, while 'Level Three' could be the flagged, gap-filled, data-manager checked final output.
+
+### Data Provenance
+
+Throughout the entire system, all data streams, original or derived, are kept in their original state.  Updates, such as flag changes by a data manager, or value changes, do not occur.  Values are only changed if the data stream is reprocessed, therefore regenerating the selected data stream and cascading the reprocessing to all the complex-procedures using that data stream further on in the chain.
+
+If a sensor stream has missing data, which is interpolated by procedure A, the interpolated values are saved as the output of procedure A, for the property and feature the sensor stream was observing.  It is the responsibility of another procedure to join the sensor stream and the interpolated stream together to create a full timeseries structure.  Similarly, if a data manager changes flags of a set of questionable observations that the automated methods failed to identify, these do not overwrite the overall flag output by the system.  Instead these values are output as a data stream generated by the data manager as the procedure, with the property being the flag type, and the feature the data stream procedure which the flag applies to.
+
+N.B. the observations must use result and observation time as the column key.
+
+### Deployment and Errata
+
+Add hierarchical properties to link the procedure to property (e.g. if p => cp => op => foi then p => op, or p => foi).
+
+Add cleaning/maintenance expected spacing, assume default is no cleaning/maintenance, only when it occurs is there a record.
