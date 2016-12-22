@@ -29,7 +29,7 @@ Import: <http://purl.org/voc/cpm>
 
 # Every sensor which has a unique reference ID will have a deployment instance,
 #   whether it is a sub-component of a sensing system or not.  This allows tracking
-#   of what sub-components were attached during different deployments, as these
+#   of which sub-components were attached during different deployments, as these
 #   may change.  For example an underwater sonde may be deployed and be regarded
 #   as a single system, but can have multiple instruments such as temperature,
 #   salinity, turbidity, and other sensors attached.  The instruments deployed at
@@ -77,8 +77,8 @@ ObjectProperty: containsSubDeployment
 # A sensor can be deployed multiple times, and have multiple deployment processes
 #   and deployment states depending on its current object properties.  The
 #   possible known deployment processes are: Installation, Removal, Cleaning,
-#   Maintenance, and ProgramChange, though the last process refers to the logger
-#   rather than individual sensors.
+#   Maintenance, and ProgramChange, the last of these refers to both the logger
+#   or individual sensors.
 #
 # These classes are not disjoint, as an installation duration of one sensor may
 #   coincide with the removal of another sensor, so that they can share the same
@@ -384,7 +384,6 @@ ObjectProperty: forPlatform
    Annotations: rdfs:comment "Used to link a deployment that defines a given
    deployment period and location to the platform it represents."
 
-
 ObjectProperty: platformInstalledBy
    Domain: PlatformDeployment
    Range: foaf:Person
@@ -418,7 +417,7 @@ ObjectProperty: locatedAt
 
 # Power source
 #
-# Each sensor in our current networks is powered by the same hardware that logs
+# Every sensor in our current networks is powered by the same hardware that logs
 #   the observation values.  It is the logger that has a minimum operating voltage
 #   which if crossed means that the sensors powered by the logger may not record
 #   reliable observations.
@@ -459,6 +458,16 @@ ObjectProperty: poweredBy
 #   have a start and end time associated with it.  The object properties to
 #   indicate the replacement of one sensing instance with another are also
 #   created.
+#
+# A Sensing Record can also be applicable to a procedure, or a complex procedure.
+#   If parameters can change during deployment, the sensing record is best
+#   attached to the complex procedure.  For instance, the gain on a Chlorophyll
+#   A sensor may change during deployment or between deployments, so the sensing
+#   record should be connected to the complex procedure.  When a complex procedure
+#   uses the output of another complex procedure or sample, the sensing record
+#   describing this relationship is connected to the complex procedure.  Only
+#   definitions of mostly unchanging setup parameters, equations, models, or links
+#   to source code should be held in the procedure's Sensing Record.
 
 Class: SensingRecord
    SubClassOf: ssn:Sensing
@@ -467,7 +476,7 @@ Class: SensingRecord
    temporal bounds."
 
 DataProperty: temporalConstraint
-   Domain: SensingRecord
+   Domain: SensingParameter
    Range: xsd:anyURI
    Annotations: rdfs:comment "Defines how the inputs are collated for processing,
    for example 'instant', 'leading_lag', 'trailing_lag', 'open_lag' defines if:
@@ -476,7 +485,7 @@ DataProperty: temporalConstraint
    variable type can be ahead.  Used in conjunction with temporalLimit."
 
 DataProperty: temporalLimit
-   Domain: SensingRecord
+   Domain: SensingParameter
    Range: xsd:integer
    Annotations: rdfs:comment "The lag in minutes that defines the leading/trailing/
    open lag entries in the temporalConstraint data property."
@@ -651,7 +660,7 @@ ObjectProperty: manufactured
 # - processType: (Simulation, Manual Method, Sensor, Algorithm, Unknown) URI link.
 # - processReference: Same as SensorML documentation.
 # - intendedObservationSpacing: Expected duration between individual observations.
-# - status: (Validated, Provisional) URI link.
+# - status: (e.g. Validated, Provisional) URI link.
 # - maximumGap: The largest gap allowed between observations where interpolation
 #     can still be used.
 # - sampledMedium: (Water, Ground Water, Soil, ...) URI link, but part of the
@@ -670,13 +679,14 @@ ObjectProperty: manufactured
 # - accumulationAnchorTime: Time point from which an accumulation interval length
 #     is attached, e.g. xx:00, combined with an accumulationIntervalLength of 59
 #     describes an accumulated value output as say 13:00, which used observations
-#     from 12:01 to 13:00 in its creation.
+#     from 12:01 to 13:00 in its creation, part of the observed property in CPM
+#     or OP design.
 # - cumulative: Whether the timeseries is cumulative in nature.
 #
 # Some of the attributes can be attached to a sensor instance, as these are the
 #   static values of a procedure.  Those that can change, need to be held within
 #   a temporal entity attached to, in this case, the ComplexProcess, as the
-#   settings will only ever be set when the procedure is used, and this only
+#   settings will only ever be set when the procedure is used and this only
 #   occurs when a ComplexProcess exists.
 #
 # Other attributes that could also join the ComplexProcess set of attributes,
@@ -730,20 +740,15 @@ DataProperty: interpolationType
     process definitions would not be a problem.  Found in section 9.15.3.2 of
     the WaterML Part 1 standard."
 
-Class: ProcessSettings
-    SubClassOf: time:TemporalEntity
-    Annotations: rdfs:comment "A temporal entity created to group together sets
-    of WaterML derived parameters that may change over time."
-
 DataProperty: intendedObservationSpacing
-    Domain: ProcessSettings
+    Domain: SensingRecord
     Range: xsd:integer
     Annotations: rdfs:comment "The expected spacing between generated observations,
     to be used as a QC sanity check for missing data.  Found in section 9.4.1.8.1
     of the WaterML Part 1 standard."
 
 DataProperty: maximumGap
-    Domain: ProcessSettings
+    Domain: SensingRecord
     Range: xsd:integer
     Annotations: rdfs:comment "Included, but unsure of whether we keep or would
     specify this value.  Found in section 9.4.1.8.4 of the WaterML Part 1 standard."
@@ -761,23 +766,20 @@ Class: DomainExtent
 
 # There is an attempt to bring the cumulative, aggregation, and accumulation
 #   TVP entries into the domain representation.  The anchor time (and so start
-#   and end anchor times), and durations, will not change during operation, and
-#   so it is possible to use a single set of values to represent all observations
-#   of a property.
+#   and end anchor times), and durations, are unlikely to change often, but
+#   change is possible.
 #
-# TODO:
-# This has not been completed as it is unclear on the best way to implement this.
-#   The SensingRecord connected to the procedure observing the aggregated property
-#   will have the parameters necessary to create the datasets, while for
-#   hardware that calculates accumulated values, this will also be represented
-#   by a sensing record.  As these parameters will be giving the same information
-#   as the data properties below, and so will dictate how we represent the below
-#   it seems better to revisit this once the SensingRecords are being used
-#   correctly to drive the processing framework.
-#
-# It is worth noting that a different ObservableProperty entity should be created
-#   for any change in the cumulative parameters, as technically this is now a
-#   different property, with different characteristics.
+# These parameters can be placed either in the sensing record, or the observable
+#   property.  Both have valid reasons for choice, the sensing record is meant to
+#   hold all configuration parameters and it is conceivable a single algorithm
+#   will be used with different parameters to create the mean values, while the
+#   property represents what is being observed, and these parameters can influence
+#   the signal observed.  For the latter this can be taken further to state that
+#   a change in the aggregations/accumulation parameters represents a change in
+#   the signal being observed, and so a new observed property should be created.
+#   I think the sensing record is the better choice, with the property stating
+#   that it is an hourly aggregate, and the sensing record defining how the
+#   aggregate is created.
 
 # DataProperty: cumulative
 #    Domain: cpm:StatisticalMeasure
@@ -837,13 +839,17 @@ Class: MonitoringFeature
    a Z axis and potentially represent curves and/or polygons.  Being a GeoNames
    feature we can relate the platform and sampling features together if different."
 
-Class: ObservableProperty
-   SubClassOf: ssn:Property
-   Annotations:
+Class: FeatureProperty
+   EquivalentTo: ssn:Property
+   Annotations: rdfs:comment "The property instance used to link between the
+   feature and the complex process.  It's use is to make the link between the
+   feature and intself a one-to-many"
 
-Class: ComplexObservableProperty
-   SubClassOf: ssn:Property
-   Annotations: rdfs:comment ""
+ObjectProperty: hasPropertyInstance
+   Domain: FeatureProperty
+   Range: cpm:ObservableProperty
+   Annotations: rdfs:comment "The link between the feature's property and the
+   descriptive observable property."
 
 Class: PropertyCharacteristics
    Annotations: rdfs:comment "An observed property can have many characteristics
@@ -856,7 +862,7 @@ Class: PropertyCharacteristics
    we use to summarise this?  Concepts will be held within the vocabulary."
 
 ObjectProperty: hasCharacteristics
-   Domain: ObservableProperty
+   Domain: FeatureProperty
    Range: PropertyCharacteristics
 
 Class: ComplexProcess
@@ -884,3 +890,7 @@ ObjectProperty: usedProcess
    Annotations: rdfs:comment "Linking the complex process that represents the
     intersection between a hardware or software process and the observable
     property that its generation observations for/from."
+
+ObjectProperty: hasExtent
+    Domain: ComplexProcess
+    Range: DomainExtent
