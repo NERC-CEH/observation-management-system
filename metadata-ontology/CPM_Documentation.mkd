@@ -1,5 +1,26 @@
-In the CPM there are contradictory examples in the use of matrix and object of interest.  For example, in Table 4 they show the "surface elevation" property for the "water body" matrix, but in table 5 they show the "level" property for the "water" object of interest.  The second approach appears more rational in that the level is a property of the water, rather than the level being within the water body, as there can be continuous levels within a water body depending on how you define the top and bottom.
+# Complex Property Model
 
-There also appears to be overloading of the matrix property, with examples using "lake water" or "water body".  If "lake water" is used, for example as the matrix to the concentration of carbon, we are losing the ability to facet a search on only water or lakes.  If the vocabulary concepts are setup correctly then we likely would be able to navigate the relationships as part of a search, however the CPM and OP seem to exist to atomise as much of a property as possible; the mixing of distinct subjects within matrix is unappealing.  To negate this, the feature of interest concept from OP is used, which is used to represent the feature realm the property is associated with.  So the matrix can be water, and the feature a lake.
+## Introduction
 
-There is still some uncertainty about some properties, such as atmospheric pressure.  This is the property "pressure", for the object "atmosphere", but this is measured in the "atmosphere", leading to double use of "atmosphere" for both the object and matrix.  For other properties such as "dew point" or "relative humidity", these can conceivably be represented by either or both matrix and object of interest.  For example, the dew point is a property of the atmosphere, or it could be a property that is observed in the atmosphere, similar to relative humidity in this respect.
+The complex property model (CPM) (Leadbetter and Vodden 2016) has been chosen to represent the properties within the integrated monitoring framework.  It was chosen over the Observed Properties (OP) model due to its existing use within CEH, and because mediation between the CPM and OP is straightforward enough that either could have been used for an initial implementation.  Similarly the properties used as definitions within CPM are based on concepts from the EnvThes vocabulary, rather than the QUDT ontology, based on the existing use within CEH and the relative ease of mediation in the future.
+
+## Interpretation
+
+### Term Overloading
+
+Within CPM, there occurs overloading of terms such as `property` and `constraintProperty` which are used for both data and object properties.  This causes issue when loading the ontology definition into Protege, as it appears to expect by default the data property.  As a workaround the properties have been inherited from, creating sub-properties within the ontology that when used are read by Protege OK.  For example, the object property `forProperty` is a sub-property of `cpm:property`.
+
+### Object of Interest vs Matrix
+
+Within the examples given by Leadbetter and Vodden (2016), there appears to be a contradictory example of when to use the matrix or object of interest categories.  In table 4 they show the "surface elevation" property for the "water body" matrix, but in table 5 they show the "level" property for the "water" object of interest.  Both are measured in metres, and both appear to represent the same property, the height of the water in relation to a reference point.  The first of these examples, by not specifying an object of interest, is ambiguous.  It states the surface elevation within a water body, but provides no subject, though the meaning can be inferred through the 'surface' prefix, using it as the object of interest.  The second example has no ambiguity, as the level of water is clearly understood, and when connected to a feature of interest it would have the context to understand it entirely.
+
+Uncertainty also exists when decomposing different observation types where the object of interest and matrix are similar or are the same thing.  Atmospheric pressure is one example, where we are observing the property of pressure, for the object of interest atmosphere.  However, the reading is taken within the atmosphere, and so the object and matrix are the same, similar to relative humidity.  For other concepts such as the dry and wet bulb temperature, the argument could be made that the matrix should reflect the location of the sensor, e.g. within open atmosphere, within a Stevenson screen, within a dry or wet bulb.  It seems just as feasible to use a constraint to specify the type of setting, in-fact as these are all measuring within the atmosphere, but with different setups, using a constraint appears the better choice.  This will lead to some repetition in cases between the object and matrix, but that is not an issue.
+
+# Matrix vs Feature of Interest
+
+There is also some potential overlap between the matrix of the property, and the feature of interest type the property is measured at.  For example, the depth property of the hypolimnion object of interest is measured within the water column.  However the feature that this is a property of is also a representation of the water column, this time with the xyz values corresponding to the start and end of the profile.  Again like the repetition seen between object of interest and matrix values, this is not a problem, but something to be aware of.
+
+
+
+
+Leadbetter, A.M. and Vodden, P.N., 2016. Semantic linking of complex properties, monitoring processes and facilities in web-based representations of the environment. International Journal of Digital Earth, 9(3), pp.300-324.
